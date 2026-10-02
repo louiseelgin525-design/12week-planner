@@ -1,0 +1,4 @@
+temp_chrome_profile_*/
+*.log
+.DS_Store
+Thumbs.db
