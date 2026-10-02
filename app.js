@@ -497,6 +497,43 @@
         });
       });
 
+      // Day selector buttons in Task modal (Apple outline style)
+      document.querySelectorAll('#task-day-selector .day-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('active');
+        });
+      });
+
+      // Quick presets for days
+      const btnWeekdays = document.getElementById('btn-preset-weekdays');
+      if (btnWeekdays) {
+        btnWeekdays.addEventListener('click', () => {
+          document.querySelectorAll('#task-day-selector .day-btn').forEach(btn => {
+            const day = parseInt(btn.dataset.day, 10);
+            if (day >= 0 && day <= 4) {
+              btn.classList.add('active');
+            } else {
+              btn.classList.remove('active');
+            }
+          });
+        });
+      }
+
+      const btnAll7 = document.getElementById('btn-preset-all7');
+      if (btnAll7) {
+        btnAll7.addEventListener('click', () => {
+          document.querySelectorAll('#task-day-selector .day-btn').forEach(btn => {
+            btn.classList.add('active');
+          });
+        });
+      }
+
+      // Copy Previous Week action
+      const btnCopyPrev = document.getElementById('btn-copy-prev-week');
+      if (btnCopyPrev) {
+        btnCopyPrev.addEventListener('click', () => this.copyPreviousWeek());
+      }
+
       // Today Note autosave
       const noteInput = document.getElementById('today-note-input');
       noteInput.addEventListener('input', () => {
@@ -1000,6 +1037,31 @@
       const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
       document.getElementById('week-page-dates').textContent = `${weekStart.getDate()} ${months[weekStart.getMonth()]} — ${weekEnd.getDate()} ${months[weekEnd.getMonth()]}`;
 
+      // Copy Previous Week Banner
+      const copyBanner = document.getElementById('copy-prev-week-banner');
+      if (copyBanner) {
+        if (w > 1) {
+          const prevWeekNum = w - 1;
+          const prevWeekStart = (w - 2) * 7;
+          let prevTasksCount = 0;
+          for (let i = 0; i < 7; i++) {
+            const dData = this.getDayData(prevWeekStart + i);
+            if (dData && Array.isArray(dData.tasks)) {
+              prevTasksCount += dData.tasks.length;
+            }
+          }
+          if (prevTasksCount > 0) {
+            copyBanner.style.display = 'flex';
+            document.getElementById('copy-prev-week-title').textContent = `Скопировать план с Недели ${prevWeekNum}?`;
+            document.getElementById('copy-prev-week-desc').textContent = `Перенести ${prevTasksCount} ${this.declension(prevTasksCount, ['действие', 'действия', 'действий'])} со сбросом галочек`;
+          } else {
+            copyBanner.style.display = 'none';
+          }
+        } else {
+          copyBanner.style.display = 'none';
+        }
+      }
+
       // 7 Days Vertical
       const daysContainer = document.getElementById('week-seven-days-list');
       daysContainer.innerHTML = '';
@@ -1223,6 +1285,18 @@
         sel.appendChild(opt);
       });
 
+      // Reset day buttons: select only the day of the week being viewed
+      const offset = (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
+      const currentDayOfWeek = offset % 7; // 0=Mon, 1=Tue, ..., 6=Sun
+      document.querySelectorAll('#task-day-selector .day-btn').forEach(btn => {
+        const d = parseInt(btn.dataset.day, 10);
+        if (d === currentDayOfWeek) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
       this.modalTask.classList.add('open');
     }
 
@@ -1241,23 +1315,83 @@
       }
 
       const offset = (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
-      const dayData = this.getDayData(offset);
-      dayData.tasks.push({
-        id: 't-' + Date.now(),
-        title,
-        mins,
-        goalId,
-        done: false
-      });
+      const currentDayOfWeek = offset % 7;
+      const weekStartOffset = Math.floor(offset / 7) * 7;
 
-      if (offset === this.state.currentDayOffset) {
-        this.state.todayTasks = dayData.tasks;
+      // Collect active days
+      let activeDays = Array.from(document.querySelectorAll('#task-day-selector .day-btn.active'))
+        .map(b => parseInt(b.dataset.day, 10));
+
+      if (activeDays.length === 0) {
+        activeDays = [currentDayOfWeek];
       }
+
+      const ts = Date.now();
+      activeDays.forEach((dayIdx, i) => {
+        const targetOffset = weekStartOffset + dayIdx;
+        const dayData = this.getDayData(targetOffset);
+        dayData.tasks.push({
+          id: 't-' + ts + '-' + i,
+          title,
+          mins,
+          goalId,
+          done: false
+        });
+
+        if (targetOffset === this.state.currentDayOffset) {
+          this.state.todayTasks = dayData.tasks;
+        }
+      });
 
       this.saveState();
       this.closeTaskModal();
       this.renderToday();
+      this.renderWeekView();
       this.renderDashboard();
+    }
+
+    copyPreviousWeek() {
+      const w = this.selectedWeek;
+      if (w <= 1) return;
+      const prevWeekNum = w - 1;
+      const prevWeekStart = (w - 2) * 7;
+      const currWeekStart = (w - 1) * 7;
+
+      let totalToCopy = 0;
+      for (let i = 0; i < 7; i++) {
+        const src = this.getDayData(prevWeekStart + i);
+        if (src && Array.isArray(src.tasks)) totalToCopy += src.tasks.length;
+      }
+
+      if (totalToCopy === 0) {
+        alert(`На Неделе ${prevWeekNum} нет запланированных действий для копирования.`);
+        return;
+      }
+
+      const msg = `Скопировать план с Недели ${prevWeekNum} в Неделю ${w}?\n\nБудет перенесено ${totalToCopy} ${this.declension(totalToCopy, ['действие', 'действия', 'действий'])} со сбросом галочек (готовы к выполнению).`;
+      if (confirm(msg)) {
+        const ts = Date.now();
+        for (let i = 0; i < 7; i++) {
+          const src = this.getDayData(prevWeekStart + i);
+          const tgt = this.getDayData(currWeekStart + i);
+          if (src && Array.isArray(src.tasks) && src.tasks.length > 0) {
+            const cloned = src.tasks.map((t, idx) => ({
+              id: 't-' + ts + '-' + i + '-' + idx,
+              title: t.title,
+              mins: t.mins,
+              goalId: t.goalId,
+              done: false
+            }));
+            tgt.tasks = [...tgt.tasks, ...cloned];
+            if ((currWeekStart + i) === this.state.currentDayOffset) {
+              this.state.todayTasks = tgt.tasks;
+            }
+          }
+        }
+        this.saveState();
+        this.renderAll();
+        this.launchConfetti();
+      }
     }
 
     // Goals CRUD

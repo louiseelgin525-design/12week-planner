@@ -18,7 +18,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   
-  <link rel="stylesheet" href="style.css?v=2.8">
+  <link rel="stylesheet" href="style.css?v=2.9">
 </head>
 <body>
   <!-- Canvas for celebration confetti -->
@@ -324,6 +324,18 @@
             <span id="week-current-pill">Неделя 5</span>
             <button class="week-next-btn" id="btn-week-next">&rsaquo;</button>
           </div>
+        </div>
+
+        <!-- Copy Previous Week Banner (shown for Week 2-12 if previous week has tasks) -->
+        <div id="copy-prev-week-banner" class="copy-week-banner" style="display: none;">
+          <div class="copy-week-content">
+            <span class="copy-week-icon">📋</span>
+            <div class="copy-week-text">
+              <div class="copy-week-title" id="copy-prev-week-title">Скопировать план с прошлой недели?</div>
+              <div class="copy-week-desc" id="copy-prev-week-desc">Перенести задачи со сбросом галочек</div>
+            </div>
+          </div>
+          <button type="button" class="btn-copy-week" id="btn-copy-prev-week">Скопировать</button>
         </div>
 
         <!-- 7-Day Vertical Overview (From Section 2 of User Prompt!) -->
@@ -643,6 +655,23 @@
           </select>
         </div>
 
+        <div class="form-group">
+          <label class="form-label">Повторить по дням этой недели</label>
+          <div class="day-selector-grid" id="task-day-selector">
+            <button type="button" class="day-btn" data-day="0">ПН</button>
+            <button type="button" class="day-btn" data-day="1">ВТ</button>
+            <button type="button" class="day-btn" data-day="2">СР</button>
+            <button type="button" class="day-btn" data-day="3">ЧТ</button>
+            <button type="button" class="day-btn" data-day="4">ПТ</button>
+            <button type="button" class="day-btn" data-day="5">СБ</button>
+            <button type="button" class="day-btn" data-day="6">ВС</button>
+          </div>
+          <div class="day-quick-presets">
+            <button type="button" class="preset-chip" id="btn-preset-weekdays">Будни (Пн–Пт)</button>
+            <button type="button" class="preset-chip" id="btn-preset-all7">Все 7 дней</button>
+          </div>
+        </div>
+
         <div class="modal-actions-row">
           <button type="button" class="btn-secondary" id="btn-cancel-task">Отмена</button>
           <button type="button" class="btn-primary" id="btn-save-task">Добавить</button>
@@ -731,6 +760,6 @@
   </div>
 
   <!-- Scripts -->
-  <script src="app.js?v=2.8"></script>
+  <script src="app.js?v=2.9"></script>
 </body>
 </html>
