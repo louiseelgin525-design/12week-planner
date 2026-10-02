@@ -527,7 +527,7 @@
             </div>
           </div>
         `;
-        item.addEventListener('click', () => this.switchTab('goals'));
+        item.addEventListener('click', () => this.jumpToGoal(goal.id));
         goalsWrap.appendChild(item);
       });
 
@@ -614,6 +614,7 @@
       this.state.goals.forEach((goal, idx) => {
         const card = document.createElement('div');
         card.className = 'goal-card';
+        card.id = 'goal-card-' + goal.id;
 
         const progress = this.calculateGoalProgress(goal);
         const delta = (goal.currentVal - goal.startVal);
@@ -910,7 +911,7 @@
     // =========================================================================
     // USER ACTIONS & HANDLERS
     // =========================================================================
-    switchTab(tabId) {
+    switchTab(tabId, skipScroll = false) {
       this.currentTab = tabId;
       this.navTabs.forEach(t => {
         if (t.dataset.tab === tabId) {
@@ -928,7 +929,9 @@
         }
       });
 
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (!skipScroll) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
 
       // Refresh view upon tab entry
       if (tabId === 'dashboard') this.renderDashboard();
@@ -936,6 +939,30 @@
       if (tabId === 'today') this.renderToday();
       if (tabId === 'week') this.renderWeekView();
       if (tabId === 'mental') this.renderMental();
+    }
+
+    jumpToGoal(goalId) {
+      this.switchTab('goals', true);
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const targetCard = document.getElementById('goal-card-' + goalId);
+          if (targetCard) {
+            const headerOffset = 90;
+            const elementPosition = targetCard.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+            window.scrollTo({
+              top: Math.max(0, offsetPosition),
+              behavior: 'smooth'
+            });
+
+            targetCard.classList.remove('highlight-pulse');
+            void targetCard.offsetWidth; // trigger reflow
+            targetCard.classList.add('highlight-pulse');
+            setTimeout(() => targetCard.classList.remove('highlight-pulse'), 2500);
+          }
+        }, 120);
+      });
     }
 
     toggleTask(taskId) {
