@@ -492,29 +492,43 @@
       document.getElementById('dash-progress-label').textContent = `День ${this.state.currentDayOffset + 1} из 84 (${sprintProgress}% спринта)`;
       document.getElementById('dash-week-label').textContent = `Неделя ${this.state.currentWeekNumber}`;
 
-      // 2. Top Goals Scroll
+      // 2. Top Goals (Clean full-width rows with sharp aligned thumbnails)
       const goalsWrap = document.getElementById('dash-top-goals');
       goalsWrap.innerHTML = '';
       this.state.goals.slice(0, 4).forEach(goal => {
-        const mini = document.createElement('div');
-        mini.className = 'goal-mini-card';
+        const item = document.createElement('div');
+        item.className = 'dash-goal-card';
         
         const delta = (goal.currentVal - goal.startVal);
         const sign = delta > 0 ? '+' : '';
         const deltaStr = `${sign}${delta} ${goal.unit}`;
-
         const progress = this.calculateGoalProgress(goal);
 
-        mini.innerHTML = `
-          <div class="goal-mini-img-wrap">
-            <img class="goal-mini-img" src="${goal.photo || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=400&q=80'}" alt="${this.escapeHtml(goal.title)}">
+        const photoUrl = goal.photo || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=400&q=80';
+
+        item.innerHTML = `
+          <div class="dash-goal-thumb-wrap">
+            <img class="dash-goal-thumb" src="${photoUrl}" alt="${this.escapeHtml(goal.title)}">
           </div>
-          <span class="goal-mini-cat">${this.escapeHtml(goal.category)}</span>
-          <h4 class="goal-mini-title">${this.escapeHtml(goal.title)}</h4>
-          <div class="goal-mini-delta">Прогресс: ${progress}% • (${deltaStr})</div>
+          <div class="dash-goal-content">
+            <div class="dash-goal-top-row">
+              <span class="goal-cat-tag">${this.escapeHtml(goal.category)}</span>
+              <span class="m-delta-pill">${deltaStr}</span>
+            </div>
+            <h4 class="dash-goal-title">${this.escapeHtml(goal.title)}</h4>
+            <div class="dash-goal-progress-wrap">
+              <div class="progress-bar-bg" style="height: 6px;">
+                <div class="progress-bar-fill" style="width: ${progress}%;"></div>
+              </div>
+              <div class="dash-goal-meta-row">
+                <span>Сейчас: <b>${goal.currentVal} ${goal.unit}</b> (цель ${goal.targetVal})</span>
+                <span class="highlight-text">${progress}%</span>
+              </div>
+            </div>
+          </div>
         `;
-        mini.addEventListener('click', () => this.switchTab('goals'));
-        goalsWrap.appendChild(mini);
+        item.addEventListener('click', () => this.switchTab('goals'));
+        goalsWrap.appendChild(item);
       });
 
       // 3. Today Glance
