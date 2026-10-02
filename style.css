@@ -1352,6 +1352,50 @@ body {
   border-left: 4px solid var(--olive-primary);
   background: #FCFBF7;
 }
+.day-v-card.is-selected {
+  border-color: var(--olive-primary);
+  box-shadow: 0 0 0 2px rgba(92, 102, 71, 0.22);
+}
+
+.today-sub-tag {
+  background: var(--olive-primary);
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  letter-spacing: 0.02em;
+}
+
+.today-return-row {
+  display: flex;
+  justify-content: center;
+  margin: -6px 0 14px;
+}
+.pill-btn-today {
+  background: var(--bg-card);
+  border: 1px solid var(--sage-border);
+  color: var(--olive-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pill-btn-today:hover {
+  background: var(--olive-light);
+  color: var(--olive-dark);
+}
+.pill-btn-today:active {
+  transform: scale(0.96);
+}
 
 .day-v-left {
   display: flex;
@@ -1364,6 +1408,9 @@ body {
   color: var(--olive-dark);
   text-transform: uppercase;
   width: 26px;
+}
+.day-v-name.tag-today {
+  color: var(--olive-primary);
 }
 .day-v-date {
   font-size: 0.82rem;

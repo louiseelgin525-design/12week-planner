@@ -167,8 +167,11 @@
   class PlannerApp {
     constructor() {
       this.state = this.loadState();
+      this.syncCurrentDayFromDate();
+      this.initDaysData();
       this.currentTab = 'dashboard';
-      this.selectedWeek = 5;
+      this.selectedWeek = this.state.currentWeekNumber || 5;
+      this.selectedDayOffset = (this.state.currentDayOffset !== undefined) ? this.state.currentDayOffset : 32;
       this.tempPhotoBase64 = null;
 
       this.initElements();
@@ -200,9 +203,100 @@
       }
     }
 
+    syncCurrentDayFromDate() {
+      if (!this.state.settings || !this.state.settings.startDate) return;
+      try {
+        const parts = this.state.settings.startDate.split('-').map(Number);
+        const start = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
+        const diffMs = today.getTime() - start.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays >= 0 && diffDays < 84) {
+          this.state.currentDayOffset = diffDays;
+          this.state.currentWeekNumber = Math.floor(diffDays / 7) + 1;
+        }
+      } catch (e) {
+        console.warn('Error syncing date:', e);
+      }
+    }
+
+    getDateForDayOffset(offset) {
+      if (!this.state.settings || !this.state.settings.startDate) {
+        return new Date();
+      }
+      const parts = this.state.settings.startDate.split('-').map(Number);
+      const d = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+      d.setDate(d.getDate() + offset);
+      return d;
+    }
+
+    initDaysData() {
+      if (!this.state.daysData || typeof this.state.daysData !== 'object') {
+        this.state.daysData = {};
+      }
+      const curOffset = (this.state.currentDayOffset !== undefined) ? this.state.currentDayOffset : 32;
+      if (!this.state.daysData[curOffset]) {
+        this.state.daysData[curOffset] = {
+          tasks: Array.isArray(this.state.todayTasks) && this.state.todayTasks.length > 0 
+            ? JSON.parse(JSON.stringify(this.state.todayTasks)) 
+            : [
+                { id: 't-1', title: 'Утренняя пробежка 4 км в лёгком темпе', mins: 20, goalId: 'g-1', done: true },
+                { id: 't-2', title: 'Клиентский созвон по внедрению', mins: 15, goalId: 'g-2', done: true },
+                { id: 't-3', title: 'Аудирование подкаста на английском', mins: 20, goalId: 'g-3', done: false }
+              ],
+          note: this.state.todayNote || 'Отличный утренний настрой! Пробежка зарядила энергией на весь день.'
+        };
+      }
+      // Demo tasks for Day 8 (offset 7, Monday 7 September in Week 2)
+      if (!this.state.daysData[7]) {
+        this.state.daysData[7] = {
+          tasks: [
+            { id: 't-w2-1', title: 'Планирование спринта недели 2', mins: 15, goalId: 'g-2', done: true },
+            { id: 't-w2-2', title: 'Разминка и растяжка 20 минут', mins: 20, goalId: 'g-1', done: true },
+            { id: 't-w2-3', title: 'Повторение 30 слов на английском', mins: 15, goalId: 'g-3', done: true }
+          ],
+          note: 'Неделя 2 началась бодро! Закрыл все запланированные действия до обеда.'
+        };
+      }
+    }
+
+    getDayData(offset) {
+      this.initDaysData();
+      if (!this.state.daysData[offset]) {
+        this.state.daysData[offset] = {
+          tasks: [],
+          note: ''
+        };
+      }
+      return this.state.daysData[offset];
+    }
+
+    getDayTasks(offset) {
+      return this.getDayData(offset).tasks;
+    }
+
+    getDayNote(offset) {
+      return this.getDayData(offset).note;
+    }
+
+    goToDay(dayOffset) {
+      this.selectedDayOffset = Math.max(0, Math.min(83, dayOffset));
+      this.switchTab('today');
+    }
+
+    declension(number, titles) {
+      const cases = [2, 0, 1, 1, 1, 2];
+      return titles[
+        number % 100 > 4 && number % 100 < 20
+          ? 2
+          : cases[number % 10 < 5 ? number % 10 : 5]
+      ];
+    }
+
     // Time budget calculations according to Section 4 & 5 of the original TZ:
     // 120 mins free, 30% reserve, mode Easy = 40 mins
-    calculateTimeBudget() {
+    calculateTimeBudget(offset = (this.selectedDayOffset !== undefined ? this.selectedDayOffset : this.state.currentDayOffset)) {
       const free = parseInt(this.state.settings.freeMinutes, 10) || 120;
       const reserve = parseInt(this.state.settings.reservePercent, 10) || 30;
       const mode = this.state.settings.mode || 'easy';
@@ -223,7 +317,8 @@
         limit = Math.round(netAvailable); // 84
       }
 
-      const planned = this.state.todayTasks.reduce((sum, t) => sum + (parseInt(t.mins, 10) || 0), 0);
+      const tasks = this.getDayTasks(offset);
+      const planned = tasks.reduce((sum, t) => sum + (parseInt(t.mins, 10) || 0), 0);
       const remaining = limit - planned;
 
       return {
@@ -270,6 +365,9 @@
       this.navTabs.forEach(tab => {
         tab.addEventListener('click', () => {
           const tabId = tab.dataset.tab;
+          if (tabId === 'today') {
+            this.selectedDayOffset = this.state.currentDayOffset;
+          }
           this.switchTab(tabId);
         });
       });
@@ -355,7 +453,12 @@
       // Today Note autosave
       const noteInput = document.getElementById('today-note-input');
       noteInput.addEventListener('input', () => {
-        this.state.todayNote = noteInput.value;
+        const offset = (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
+        const dayData = this.getDayData(offset);
+        dayData.note = noteInput.value;
+        if (offset === this.state.currentDayOffset) {
+          this.state.todayNote = noteInput.value;
+        }
         this.saveState();
       });
 
@@ -533,11 +636,13 @@
 
       // 3. Today Glance
       const glance = document.getElementById('dash-today-glance');
-      const tb = this.calculateTimeBudget();
-      const doneTasks = this.state.todayTasks.filter(t => t.done).length;
+      const curOffset = (this.state.currentDayOffset !== undefined) ? this.state.currentDayOffset : 32;
+      const tb = this.calculateTimeBudget(curOffset);
+      const curTasks = this.getDayTasks(curOffset);
+      const doneTasks = curTasks.filter(t => t.done).length;
       glance.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="font-size:0.85rem; font-weight:800; color:var(--olive-dark);">Задачи: ${doneTasks} из ${this.state.todayTasks.length} выполнено</span>
+          <span style="font-size:0.85rem; font-weight:800; color:var(--olive-dark);">Задачи: ${doneTasks} из ${curTasks.length} выполнено</span>
           <span class="badge-pill ${tb.isOverloaded ? 'bg-light-khaki text-danger' : 'bg-light-green'}">${tb.planned} / ${tb.limit} мин</span>
         </div>
         <div class="progress-bar-bg" style="height:6px;">
@@ -712,18 +817,37 @@
     }
 
     renderToday() {
+      const offset = (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
+      const dayDate = this.getDateForDayOffset(offset);
+      const weekNum = Math.floor(offset / 7) + 1;
+      const dayNum = offset + 1;
+
       // Date title
-      const now = new Date();
       const daysRu = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
       const monthsRu = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
+      const monthsShort = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
       
-      const dayDate = new Date(now);
-      // Adjust according to day offset
       document.getElementById('today-display-date').textContent = `${daysRu[dayDate.getDay()]}, ${dayDate.getDate()} ${monthsRu[dayDate.getMonth()]}`;
-      document.getElementById('today-display-sprint').textContent = `НЕДЕЛЯ ${this.state.currentWeekNumber} • ДЕНЬ ${this.state.currentDayOffset + 1}`;
+      document.getElementById('today-display-sprint').textContent = `НЕДЕЛЯ ${weekNum} • ДЕНЬ ${dayNum}`;
+
+      // Quick Return button if inspecting a day other than today
+      const returnRow = document.getElementById('today-return-row');
+      if (returnRow) {
+        if (offset !== this.state.currentDayOffset) {
+          returnRow.style.display = 'flex';
+          const todayDate = this.getDateForDayOffset(this.state.currentDayOffset);
+          const shortDaysRu = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+          const btn = document.getElementById('btn-return-today');
+          if (btn) {
+            btn.innerHTML = `&larr; Вернуться к Сегодня (${shortDaysRu[todayDate.getDay()]}, ${todayDate.getDate()} ${monthsShort[todayDate.getMonth()]} • День ${this.state.currentDayOffset + 1})`;
+          }
+        } else {
+          returnRow.style.display = 'none';
+        }
+      }
 
       // Time Budget Calculations
-      const tb = this.calculateTimeBudget();
+      const tb = this.calculateTimeBudget(offset);
       const modeTitles = {
         easy: 'Режим «Лёгкий»',
         optimal: 'Режим «Оптимальный»',
@@ -761,21 +885,22 @@
 
       document.getElementById('meter-percent-txt').textContent = `${tb.percentUsed}% лимита`;
 
-      // Tasks List
+      // Tasks List for this day
       const tasksWrap = document.getElementById('today-tasks-list');
       tasksWrap.innerHTML = '';
 
-      const doneCount = this.state.todayTasks.filter(t => t.done).length;
-      document.getElementById('today-tasks-count').textContent = `${doneCount} / ${this.state.todayTasks.length} выполнено`;
+      const tasks = this.getDayTasks(offset);
+      const doneCount = tasks.filter(t => t.done).length;
+      document.getElementById('today-tasks-count').textContent = `${doneCount} / ${tasks.length} выполнено`;
 
-      if (this.state.todayTasks.length === 0) {
+      if (tasks.length === 0) {
         tasksWrap.innerHTML = `
           <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.85rem; font-weight:700;">
-            На сегодня пока нет задач. Добавьте действие ниже!
+            На этот день пока нет действий. Нажмите «+ Добавить действие», чтобы запланировать!
           </div>
         `;
       } else {
-        this.state.todayTasks.forEach(task => {
+        tasks.forEach(task => {
           const item = document.createElement('div');
           item.className = `task-item ${task.done ? 'done' : ''}`;
 
@@ -804,8 +929,8 @@
         });
       }
 
-      // Today Note
-      document.getElementById('today-note-input').value = this.state.todayNote || '';
+      // Today Note for this day
+      document.getElementById('today-note-input').value = this.getDayNote(offset) || '';
     }
 
     renderWeekView() {
@@ -814,44 +939,71 @@
       document.getElementById('week-current-pill').textContent = `Неделя ${w}`;
 
       // Dates range of week
-      const start = new Date(this.state.settings.startDate);
-      start.setDate(start.getDate() + (w - 1) * 7);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 6);
+      const weekStart = this.getDateForDayOffset((w - 1) * 7);
+      const weekEnd = this.getDateForDayOffset((w - 1) * 7 + 6);
       const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-      document.getElementById('week-page-dates').textContent = `${start.getDate()} ${months[start.getMonth()]} — ${end.getDate()} ${months[end.getMonth()]}`;
+      document.getElementById('week-page-dates').textContent = `${weekStart.getDate()} ${months[weekStart.getMonth()]} — ${weekEnd.getDate()} ${months[weekEnd.getMonth()]}`;
 
       // 7 Days Vertical
       const daysContainer = document.getElementById('week-seven-days-list');
       daysContainer.innerHTML = '';
 
+      let weekTotalPlannedMins = 0;
       const dayNames = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
       for (let i = 0; i < 7; i++) {
-        const curDate = new Date(start);
-        curDate.setDate(curDate.getDate() + i);
+        const dayOffset = (w - 1) * 7 + i;
+        const curDate = this.getDateForDayOffset(dayOffset);
 
         const card = document.createElement('div');
-        const isCurrentDay = (w === this.state.currentWeekNumber && i === 4); // Friday
-        card.className = `day-v-card ${isCurrentDay ? 'is-today' : ''}`;
+        const isCurrentDay = (dayOffset === this.state.currentDayOffset);
+        const isSelectedDay = (dayOffset === this.selectedDayOffset);
+        card.className = `day-v-card ${isCurrentDay ? 'is-today' : ''} ${isSelectedDay ? 'is-selected' : ''}`;
+
+        const dayData = this.getDayData(dayOffset);
+        const count = dayData.tasks.length;
+        const totalMins = dayData.tasks.reduce((sum, t) => sum + (parseInt(t.mins, 10) || 0), 0);
+        weekTotalPlannedMins += totalMins;
+
+        const tb = this.calculateTimeBudget(dayOffset);
+        let badgeHtml = '';
+        if (count === 0) {
+          badgeHtml = `<span class="day-v-balance-badge" style="background:#ECE7DB; color:var(--text-muted);">0 мин</span>`;
+        } else if (tb.isOverloaded) {
+          badgeHtml = `<span class="day-v-balance-badge bg-light-khaki text-danger">${totalMins} мин ⚠️</span>`;
+        } else {
+          badgeHtml = `<span class="day-v-balance-badge bg-light-green">${totalMins} мин ✓</span>`;
+        }
+
+        const summaryText = count > 0 
+          ? `${count} ${this.declension(count, ['действие', 'действия', 'действий'])} • ${totalMins} мин`
+          : 'Нажмите, чтобы запланировать';
 
         card.innerHTML = `
           <div class="day-v-left">
-            <span class="day-v-name">${dayNames[i]}</span>
+            <span class="day-v-name ${isCurrentDay ? 'tag-today' : ''}">${dayNames[i]}</span>
             <div>
-              <span class="day-v-date">${curDate.getDate()} ${months[curDate.getMonth()]}</span>
-              <div class="day-v-tasks-summary">3 действия • 35 мин</div>
+              <span class="day-v-date">
+                ${curDate.getDate()} ${months[curDate.getMonth()]}
+                ${isCurrentDay ? '<span class="today-sub-tag">Сегодня</span>' : ''}
+              </span>
+              <div class="day-v-tasks-summary">${summaryText}</div>
             </div>
           </div>
           <div class="day-v-right">
-            <span class="day-v-balance-badge bg-light-green">Баланс ✓</span>
+            ${badgeHtml}
           </div>
         `;
 
         card.addEventListener('click', () => {
-          this.switchTab('today');
+          this.goToDay(dayOffset);
         });
 
         daysContainer.appendChild(card);
+      }
+
+      const totalBalanceBadge = document.getElementById('week-total-balance');
+      if (totalBalanceBadge) {
+        totalBalanceBadge.textContent = `Время недели: ${weekTotalPlannedMins} мин`;
       }
 
       // Reflection for selected week
@@ -966,9 +1118,14 @@
     }
 
     toggleTask(taskId) {
-      const task = this.state.todayTasks.find(t => t.id === taskId);
+      const offset = (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
+      const dayData = this.getDayData(offset);
+      const task = dayData.tasks.find(t => t.id === taskId);
       if (task) {
         task.done = !task.done;
+        if (offset === this.state.currentDayOffset) {
+          this.state.todayTasks = dayData.tasks;
+        }
         this.saveState();
         this.renderToday();
         this.renderDashboard();
@@ -981,7 +1138,12 @@
     }
 
     deleteTask(taskId) {
-      this.state.todayTasks = this.state.todayTasks.filter(t => t.id !== taskId);
+      const offset = (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
+      const dayData = this.getDayData(offset);
+      dayData.tasks = dayData.tasks.filter(t => t.id !== taskId);
+      if (offset === this.state.currentDayOffset) {
+        this.state.todayTasks = dayData.tasks;
+      }
       this.saveState();
       this.renderToday();
       this.renderDashboard();
@@ -1018,13 +1180,19 @@
         return;
       }
 
-      this.state.todayTasks.push({
+      const offset = (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
+      const dayData = this.getDayData(offset);
+      dayData.tasks.push({
         id: 't-' + Date.now(),
         title,
         mins,
         goalId,
         done: false
       });
+
+      if (offset === this.state.currentDayOffset) {
+        this.state.todayTasks = dayData.tasks;
+      }
 
       this.saveState();
       this.closeTaskModal();
@@ -1263,13 +1431,12 @@
     }
 
     changeDay(delta) {
-      let nextDay = this.state.currentDayOffset + delta;
+      let cur = (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
+      let nextDay = cur + delta;
       if (nextDay < 0) nextDay = 0;
       if (nextDay >= 84) nextDay = 83;
-      this.state.currentDayOffset = nextDay;
-      this.state.currentWeekNumber = Math.floor(nextDay / 7) + 1;
-      this.saveState();
-      this.renderAll();
+      this.selectedDayOffset = nextDay;
+      this.renderToday();
     }
 
     // Settings & Backups
@@ -1291,6 +1458,10 @@
       this.state.settings.mode = document.getElementById('set-mode').value;
       this.state.settings.freeMinutes = parseInt(document.getElementById('set-free-minutes').value, 10) || 120;
       this.state.settings.reservePercent = parseInt(document.getElementById('set-reserve-percent').value, 10) || 30;
+
+      this.syncCurrentDayFromDate();
+      this.selectedDayOffset = this.state.currentDayOffset;
+      this.selectedWeek = this.state.currentWeekNumber;
 
       this.saveState();
       this.closeSettings();
@@ -1335,6 +1506,10 @@
     resetToDemo() {
       if (confirm('Вернуть демонстрационные данные? Все текущие записи будут заменены примером из блокнота.')) {
         this.state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+        this.syncCurrentDayFromDate();
+        this.initDaysData();
+        this.selectedDayOffset = this.state.currentDayOffset;
+        this.selectedWeek = this.state.currentWeekNumber;
         this.saveState();
         this.closeSettings();
         this.renderAll();
@@ -1357,6 +1532,7 @@
           goals: [],
           todayTasks: [],
           todayNote: '',
+          daysData: {},
           weekHistory: Array.from({ length: 12 }, (_, i) => ({ week: i + 1, pace: 0 })),
           reflections: {},
           mental: {
@@ -1366,6 +1542,8 @@
             sacrifices: ''
           }
         };
+        this.selectedDayOffset = 0;
+        this.selectedWeek = 1;
         this.saveState();
         this.closeSettings();
         this.renderAll();
