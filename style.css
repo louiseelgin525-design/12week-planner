@@ -1778,6 +1778,7 @@ body {
 }
 .form-input, .form-select, .form-textarea {
   width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--sage-border);
   background: var(--bg-card-subtle);
   border-radius: var(--radius-md);
@@ -1795,6 +1796,26 @@ body {
 .form-row {
   display: flex;
   gap: 10px;
+  align-items: stretch;
+}
+.form-row .form-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 14px;
+}
+.form-row .form-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+.form-row .form-input,
+.form-row .form-select {
+  margin-top: auto;
+  height: 42px;
 }
 .flex-1 { flex: 1; }
 
