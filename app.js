@@ -282,7 +282,9 @@
 
     goToDay(dayOffset) {
       this.selectedDayOffset = Math.max(0, Math.min(83, dayOffset));
+      this.selectedWeek = Math.floor(this.selectedDayOffset / 7) + 1;
       this.switchTab('today');
+      this.renderCapsulesRibbon();
     }
 
     declension(number, titles) {
@@ -536,37 +538,45 @@
         pill.className = 'capsule-pill';
         pill.textContent = `Н${w}`;
 
-        if (w < this.state.currentWeekNumber) {
-          pill.classList.add('completed');
+        const isCurrentWeek = (w === this.state.currentWeekNumber);
+        const isSelected = (w === this.selectedWeek);
+
+        if (isCurrentWeek) {
+          pill.classList.add('is-current-week');
+          pill.title = `Неделя ${w} ★ (текущая активная неделя спринта)`;
+        } else if (w < this.state.currentWeekNumber) {
+          pill.classList.add('is-past-week');
           pill.title = `Неделя ${w} (завершена)`;
-        } else if (w === this.state.currentWeekNumber) {
-          pill.classList.add('active');
-          pill.title = `Неделя ${w} ★ (текущая активная неделя)`;
         } else {
           pill.title = `Неделя ${w} (впереди)`;
+        }
+
+        if (isSelected) {
+          pill.classList.add('is-selected');
         }
 
         pill.addEventListener('click', () => {
           this.selectedWeek = w;
           this.switchTab('week');
+          this.renderCapsulesRibbon();
         });
 
         ribbon.appendChild(pill);
       }
 
-      // Auto-scroll so the active week capsule is centered in view
+      // Auto-scroll so the selected (or current) week capsule is centered in view
       setTimeout(() => {
-        const activePill = ribbon.querySelector('.capsule-pill.active');
-        if (activePill && this.ribbonScrollBox) {
-          const pillLeft = activePill.offsetLeft;
-          const pillWidth = activePill.offsetWidth;
+        const targetPill = ribbon.querySelector('.capsule-pill.is-selected') || ribbon.querySelector('.capsule-pill.is-current-week');
+        if (targetPill && this.ribbonScrollBox) {
+          const pillLeft = targetPill.offsetLeft;
+          const pillWidth = targetPill.offsetWidth;
           const boxWidth = this.ribbonScrollBox.offsetWidth;
           this.ribbonScrollBox.scrollTo({
             left: Math.max(0, pillLeft - (boxWidth / 2) + (pillWidth / 2)),
             behavior: 'smooth'
           });
         }
-      }, 100);
+      }, 80);
     }
 
     renderDashboard() {
@@ -935,8 +945,9 @@
 
     renderWeekView() {
       const w = this.selectedWeek;
-      document.getElementById('week-page-number').textContent = w;
-      document.getElementById('week-current-pill').textContent = `Неделя ${w}`;
+      const isCurrentWeek = (w === this.state.currentWeekNumber);
+      document.getElementById('week-page-number').textContent = isCurrentWeek ? `${w} ★` : `${w}`;
+      document.getElementById('week-current-pill').textContent = isCurrentWeek ? `Неделя ${w} ★` : `Неделя ${w}`;
 
       // Dates range of week
       const weekStart = this.getDateForDayOffset((w - 1) * 7);
@@ -1086,11 +1097,15 @@
       }
 
       // Refresh view upon tab entry
-      if (tabId === 'dashboard') this.renderDashboard();
+      if (tabId === 'dashboard') {
+        this.selectedWeek = this.state.currentWeekNumber;
+        this.renderDashboard();
+      }
       if (tabId === 'goals') this.renderGoals();
       if (tabId === 'today') this.renderToday();
       if (tabId === 'week') this.renderWeekView();
       if (tabId === 'mental') this.renderMental();
+      this.renderCapsulesRibbon();
     }
 
     jumpToGoal(goalId) {
@@ -1388,6 +1403,7 @@
       if (nw > 12) nw = 12;
       this.selectedWeek = nw;
       this.renderWeekView();
+      this.renderCapsulesRibbon();
     }
 
     setWeekRating(stars) {
@@ -1651,9 +1667,13 @@
     }
   }
 
-  // Initialize App on DOMContentLoaded
-  document.addEventListener('DOMContentLoaded', () => {
+  // Initialize App
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      window.app = new PlannerApp();
+    });
+  } else {
     window.app = new PlannerApp();
-  });
+  }
 
 })();
