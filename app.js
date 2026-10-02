@@ -332,6 +332,11 @@
       this.renderCapsulesRibbon();
     }
 
+    goToWeek(weekNum) {
+      this.selectedWeek = Math.max(1, Math.min(12, weekNum));
+      this.switchTab('week');
+    }
+
     declension(number, titles) {
       const cases = [2, 0, 1, 1, 1, 2];
       return titles[
@@ -831,43 +836,87 @@
         goalsWrap.appendChild(item);
       });
 
-      // 4. Daisies 84 Grid (Flower blooming tracker!)
+      // 4. Daisies 84 Grid (Flower blooming tracker with week indicators & inspector)
       document.getElementById('dash-daisy-count').textContent = `${doneDaisies} / 84`;
       const grid = document.getElementById('daisies-grid');
       grid.innerHTML = '';
 
-      this.state.daisies.forEach((d, idx) => {
-        const cell = document.createElement('button');
-        cell.className = 'daisy-cell';
+      if (this.inspectedDaisyOffset === undefined) {
+        this.inspectedDaisyOffset = this.state.currentDayOffset || 0;
+      }
 
-        const isCurrent = idx === this.state.currentDayOffset;
-        if (isCurrent) cell.classList.add('current');
+      const monthsShort = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
-        if (d.completed) {
-          cell.classList.add('completed');
-          cell.innerHTML = this.getDaisySvg(true);
-        } else if (idx < this.state.currentDayOffset) {
-          // Missed past day
-          cell.innerHTML = this.getDaisySvg(false);
-        } else {
-          // Future day
-          cell.classList.add('upcoming');
-          cell.innerHTML = this.getDaisySvg(false);
-        }
-
-        const curDate = this.getDateForDayOffset(idx);
-        const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-        const dayDateStr = `${curDate.getDate()} ${months[curDate.getMonth()]}`;
-        cell.title = `День ${d.dayIndex} (${dayDateStr}) • ${d.completed ? 'Распустился 🌼' : 'Не закрыт'}`;
-        cell.addEventListener('click', () => {
-          d.completed = !d.completed;
-          this.saveState();
-          this.renderDashboard();
-          if (d.completed) this.launchConfetti();
+      for (let w = 1; w <= 12; w++) {
+        // Week indicator button at left (click jumps directly to that week!)
+        const wkBtn = document.createElement('button');
+        wkBtn.type = 'button';
+        wkBtn.className = `daisy-wk-label ${w === this.state.currentWeekNumber ? 'current' : ''}`;
+        wkBtn.textContent = `Н${w}`;
+        wkBtn.title = `Неделя ${w}: нажать, чтобы перейти к плану недели`;
+        wkBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.goToWeek(w);
         });
+        grid.appendChild(wkBtn);
 
-        grid.appendChild(cell);
-      });
+        // 7 days of this week
+        for (let d = 0; d < 7; d++) {
+          const idx = (w - 1) * 7 + d;
+          const daisy = (this.state.daisies && this.state.daisies[idx]) ? this.state.daisies[idx] : { dayIndex: idx + 1, completed: false };
+
+          const cell = document.createElement('button');
+          cell.type = 'button';
+          cell.className = 'daisy-cell';
+          cell.dataset.offset = idx;
+
+          const isCurrent = (idx === this.state.currentDayOffset);
+          const isSelected = (idx === this.inspectedDaisyOffset);
+
+          if (isCurrent) cell.classList.add('current');
+          if (isSelected) cell.classList.add('selected');
+
+          if (daisy.completed) {
+            cell.classList.add('completed');
+            cell.innerHTML = this.getDaisySvg(true);
+          } else if (idx < this.state.currentDayOffset) {
+            // Missed past day
+            cell.innerHTML = this.getDaisySvg(false);
+          } else {
+            // Future day
+            cell.classList.add('upcoming');
+            cell.innerHTML = this.getDaisySvg(false);
+          }
+
+          const curDate = this.getDateForDayOffset(idx);
+          const dayDateStr = `${curDate.getDate()} ${monthsShort[curDate.getMonth()]}`;
+          cell.title = `Неделя ${w} • День ${idx + 1} (${dayDateStr}) • ${daisy.completed ? 'Распустился 🌼' : 'Не закрыт'}`;
+
+          cell.addEventListener('click', () => {
+            if (this.inspectedDaisyOffset === idx) {
+              // Second click on the same flower toggles it
+              this.toggleDaisy(idx);
+            } else {
+              // First click selects and inspects it
+              this.inspectedDaisyOffset = idx;
+              this.updateDaisySelection();
+              this.renderDaisyInspector();
+            }
+          });
+
+          cell.addEventListener('mouseenter', () => {
+            this.renderDaisyInspector(idx);
+          });
+
+          cell.addEventListener('mouseleave', () => {
+            this.renderDaisyInspector(this.inspectedDaisyOffset);
+          });
+
+          grid.appendChild(cell);
+        }
+      }
+
+      this.renderDaisyInspector();
 
       // 5. 12-Week Chart (Dynamically calculated from real weekly tasks or demo history)
       const chartWrap = document.getElementById('chart-bars');
@@ -931,6 +980,94 @@
       }
     }
 
+    renderDaisyInspector(targetOffset = null) {
+      const offset = (targetOffset !== null) ? targetOffset : (this.inspectedDaisyOffset !== undefined ? this.inspectedDaisyOffset : this.state.currentDayOffset);
+      const inspector = document.getElementById('daisy-inspector');
+      if (!inspector) return;
+
+      const d = (this.state.daisies && this.state.daisies[offset]) ? this.state.daisies[offset] : { dayIndex: offset + 1, completed: false };
+      const curDate = this.getDateForDayOffset(offset);
+      const daysFullRu = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+      const monthsRu = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
+      const dayDateStr = `${daysFullRu[curDate.getDay()]}, ${curDate.getDate()} ${monthsRu[curDate.getMonth()]}`;
+      const weekNum = Math.floor(offset / 7) + 1;
+      const dayNum = offset + 1;
+
+      const dayData = this.getDayData(offset);
+      const taskCount = (dayData && Array.isArray(dayData.tasks)) ? dayData.tasks.length : 0;
+      const doneTaskCount = (dayData && Array.isArray(dayData.tasks)) ? dayData.tasks.filter(t => t.done).length : 0;
+      const totalMins = (dayData && Array.isArray(dayData.tasks)) ? dayData.tasks.reduce((sum, t) => sum + (parseInt(t.mins, 10) || 0), 0) : 0;
+      const isToday = (offset === this.state.currentDayOffset);
+
+      let taskInfo = '';
+      if (taskCount > 0) {
+        taskInfo = `• ${doneTaskCount}/${taskCount} ${this.declension(taskCount, ['действие', 'действия', 'действий'])} (${totalMins} мин)`;
+      } else {
+        taskInfo = `• Нет запланированных действий`;
+      }
+
+      let statusBadge = '';
+      let statusIcon = '🌱';
+      if (d.completed) {
+        statusBadge = '<span class="daisy-insp-status-badge blooming">Цветёт 🌸</span>';
+        statusIcon = '🌼';
+      } else if (offset < this.state.currentDayOffset) {
+        statusBadge = '<span class="daisy-insp-status-badge missed">Не закрыт</span>';
+        statusIcon = '🌱';
+      } else {
+        statusBadge = '<span class="daisy-insp-status-badge upcoming">Впереди</span>';
+        statusIcon = '🌱';
+      }
+
+      inspector.innerHTML = `
+        <div class="daisy-insp-head">
+          <div class="daisy-insp-title-row">
+            <span class="daisy-insp-icon">${statusIcon}</span>
+            <div>
+              <div class="daisy-insp-title">
+                ${isToday ? '⭐ Сегодня • ' : ''}День ${dayNum} (${dayDateStr})
+              </div>
+              <div class="daisy-insp-sub">Неделя ${weekNum} ${taskInfo}</div>
+            </div>
+          </div>
+          ${statusBadge}
+        </div>
+        <div class="daisy-insp-actions">
+          <button type="button" class="btn-sm btn-outline" onclick="app.toggleDaisy(${offset})">
+            ${d.completed ? 'Сбросить цветение' : '🌸 Отметить цветущим'}
+          </button>
+          <button type="button" class="btn-sm btn-primary" onclick="app.goToDay(${offset})">
+            Открыть день &rarr;
+          </button>
+        </div>
+      `;
+    }
+
+    toggleDaisy(offset) {
+      if (!this.state.daisies || !this.state.daisies[offset]) return;
+      const d = this.state.daisies[offset];
+      d.completed = !d.completed;
+      this.inspectedDaisyOffset = offset;
+      this.saveState();
+      this.renderDashboard();
+      if (d.completed) {
+        this.launchConfetti();
+        if ('vibrate' in navigator) navigator.vibrate(50);
+      }
+    }
+
+    updateDaisySelection() {
+      const cells = document.querySelectorAll('#daisies-grid .daisy-cell');
+      cells.forEach(c => {
+        const offset = parseInt(c.dataset.offset, 10);
+        if (offset === this.inspectedDaisyOffset) {
+          c.classList.add('selected');
+        } else {
+          c.classList.remove('selected');
+        }
+      });
+    }
+
     renderGoals() {
       const list = document.getElementById('goals-list');
       list.innerHTML = '';
@@ -938,11 +1075,24 @@
       if (this.state.goals.length === 0) {
         list.innerHTML = `
           <div class="card" style="text-align:center; padding:30px 20px;">
-            <p style="font-size:0.95rem; font-weight:700; color:var(--text-muted); margin-bottom:12px;">Пока нет добавленных целей</p>
-            <button class="btn-primary" onclick="app.openGoalModal()">+ Добавить первую SMART-цель</button>
+            <p style="font-size:0.95rem; font-weight:700; color:var(--text-muted); margin-bottom:12px;">Пока нет добавленных целей спринта</p>
+            <button class="btn-primary" onclick="app.openGoalModal()">+ Добавить первую цель спринта</button>
           </div>
         `;
         return;
+      }
+
+      if (this.state.goals.length >= 3) {
+        const hintBox = document.createElement('div');
+        hintBox.className = 'goal-focus-hint-box';
+        hintBox.style.marginBottom = '14px';
+        hintBox.innerHTML = `
+          <span style="font-size:1.15rem; line-height:1;">💡</span>
+          <div>
+            <b>Фокус спринта:</b> У вас создано ${this.state.goals.length} ${this.declension(this.state.goals.length, ['цель', 'цели', 'целей'])}. В методике 12-недельного года максимальный результат и прорыв дают <b>1–3 ключевые цели</b>.
+          </div>
+        `;
+        list.appendChild(hintBox);
       }
 
       this.state.goals.forEach((goal, idx) => {
@@ -1671,10 +1821,12 @@
       const preview = document.getElementById('goal-photo-preview');
       const removeBtn = document.getElementById('btn-remove-photo');
 
+      const focusHint = document.getElementById('goal-modal-focus-hint');
       if (goalId) {
         const goal = this.state.goals.find(g => g.id === goalId);
         if (!goal) return;
         document.getElementById('goal-modal-title').textContent = '🎯 Редактировать цель';
+        if (focusHint) focusHint.style.display = 'none';
         document.getElementById('goal-form-id').value = goal.id;
         document.getElementById('goal-form-title').value = goal.title;
         document.getElementById('goal-form-cat').value = goal.category;
@@ -1695,7 +1847,10 @@
           removeBtn.style.display = 'none';
         }
       } else {
-        document.getElementById('goal-modal-title').textContent = '🎯 Новая SMART-цель';
+        document.getElementById('goal-modal-title').textContent = '🎯 Новая цель спринта';
+        if (focusHint) {
+          focusHint.style.display = (this.state.goals.length >= 3) ? 'flex' : 'none';
+        }
         document.getElementById('goal-form-id').value = '';
         document.getElementById('goal-form-title').value = '';
         document.getElementById('goal-form-cat').value = 'Здоровье';
@@ -1805,7 +1960,12 @@
       } else {
         // Add new
         if (this.state.goals.length >= 5) {
-          alert('В методике 12-недельного года рекомендуется держать максимум 5 ключевых целей!');
+          alert('Достигнут технический максимум: 5 целей.\n\nВ методике «12-недельный год» фокус удерживается на 1–3 ключевых целях. Чтобы добавить новую, удалите или завершите одну из существующих.');
+          return;
+        }
+        if (this.state.goals.length >= 3) {
+          const proceed = confirm('💡 Рекомендация по методике 12-недельного года:\n\nЛучшие результаты обычно получаются при 1–3 ключевых целях.\nЧетвёртая цель может размыть ваш ежедневный фокус действий.\n\nВы уверены, что хотите добавить ещё одну цель?');
+          if (!proceed) return;
         }
         const newGoal = {
           id: 'g-' + Date.now(),
