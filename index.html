@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#5C6647">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="12-недельный планер и трекер спринтов: цели SMART, ромашковый трекер 84 дней, тайм-бюджет и ментальный апгрейд">
+  <title>12-Недельный Планер • 84 Дня Роста</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Canvas for celebration confetti -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <div class="app-shell">
+    
+    <!-- Top Sticky Header -->
+    <header class="top-header">
+      <div class="header-brand">
+        <div class="brand-logo">
+          <svg class="daisy-icon-spin" viewBox="0 0 32 32" width="24" height="24">
+            <g fill="#F5C038">
+              <circle cx="16" cy="16" r="5" />
+            </g>
+            <g fill="#FFFFFF" stroke="#5C6647" stroke-width="1.2">
+              <ellipse cx="16" cy="6" rx="2.4" ry="4.5" />
+              <ellipse cx="16" cy="26" rx="2.4" ry="4.5" />
+              <ellipse cx="6" cy="16" rx="4.5" ry="2.4" />
+              <ellipse cx="26" cy="16" rx="4.5" ry="2.4" />
+              <ellipse cx="8.9" cy="8.9" rx="2.4" ry="4.5" transform="rotate(-45 8.9 8.9)" />
+              <ellipse cx="23.1" cy="23.1" rx="2.4" ry="4.5" transform="rotate(-45 23.1 23.1)" />
+              <ellipse cx="8.9" cy="23.1" rx="2.4" ry="4.5" transform="rotate(45 8.9 23.1)" />
+              <ellipse cx="23.1" cy="8.9" rx="2.4" ry="4.5" transform="rotate(45 23.1 8.9)" />
+            </g>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">12 WEEKS</span>
+          <span class="brand-subtitle" id="header-sprint-badge">НЕДЕЛЯ 5 ИЗ 12 • ДЕНЬ 33</span>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button class="icon-btn" id="btn-open-settings" aria-label="Настройки">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- 12-Week Capsule Timeline Ribbon -->
+    <section class="capsules-ribbon-container">
+      <div class="capsules-ribbon" id="capsules-ribbon">
+        <!-- Rendered dynamically: Н1..Н12 capsules -->
+      </div>
+    </section>
+
+    <!-- MAIN VIEW CONTAINER (Tabs) -->
+    <main class="main-content" id="main-content">
+      
+      <!-- ================= TAB 1: ОБЗОР (DASHBOARD) ================= -->
+      <section class="tab-pane active" id="pane-dashboard">
+        
+        <!-- Sprint Hero Card -->
+        <div class="card hero-card">
+          <div class="hero-header">
+            <div>
+              <span class="hero-label">ТЕКУЩИЙ СПРИНТ</span>
+              <h2 class="hero-title" id="dash-sprint-dates">01 Сен — 24 Ноя</h2>
+            </div>
+            <div class="sprint-status-tag" id="dash-mode-tag">
+              <span class="pulse-dot"></span> Лёгкий режим
+            </div>
+          </div>
+
+          <div class="hero-stats-grid">
+            <div class="hero-stat-box">
+              <span class="stat-value" id="dash-days-left">51</span>
+              <span class="stat-desc">дней осталось</span>
+            </div>
+            <div class="hero-stat-box">
+              <span class="stat-value" id="dash-pace">84%</span>
+              <span class="stat-desc">общий темп</span>
+            </div>
+            <div class="hero-stat-box">
+              <span class="stat-value" id="dash-streak">14 🔥</span>
+              <span class="stat-desc">дней подряд</span>
+            </div>
+          </div>
+
+          <!-- Linear progress bar -->
+          <div class="sprint-progress-wrap">
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="dash-sprint-progress" style="width: 39%;"></div>
+            </div>
+            <div class="progress-info-row">
+              <span id="dash-progress-label">День 33 из 84 (39% года)</span>
+              <span class="highlight-text" id="dash-week-label">Неделя 5</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Top Goals Quick Glance -->
+        <div class="section-block">
+          <div class="section-head">
+            <h3 class="section-title">🎯 Прогресс целей</h3>
+            <button class="link-btn" onclick="app.switchTab('goals')">Все цели &rarr;</button>
+          </div>
+          <div class="top-goals-scroll" id="dash-top-goals">
+            <!-- Dynamically populated goal preview cards -->
+          </div>
+        </div>
+
+        <!-- Section 3: Today Widget Glance -->
+        <div class="section-block">
+          <div class="section-head">
+            <h3 class="section-title">📝 Сегодня на повестке</h3>
+            <button class="link-btn" onclick="app.switchTab('today')">Открыть &rarr;</button>
+          </div>
+          <div class="card glance-card" id="dash-today-glance">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Section 4: 84 Daisies Habit Tracker (Matching Video & Screenshots!) -->
+        <div class="section-block">
+          <div class="section-head">
+            <div>
+              <h3 class="section-title">🌼 Трекер 84 дней</h3>
+              <p class="section-subtitle">Каждый выполненный день расцветает ромашкой</p>
+            </div>
+            <div class="daisy-counter-pill" id="dash-daisy-count">
+              60 / 84
+            </div>
+          </div>
+
+          <div class="card daisy-tracker-card">
+            <!-- Day labels: Пн, Вт, Ср, Чт, Пт, Сб, Вс -->
+            <div class="daisy-weekdays">
+              <span>ПН</span><span>ВТ</span><span>СР</span><span>ЧТ</span><span>ПТ</span><span>СБ</span><span>ВС</span>
+            </div>
+            
+            <div class="daisies-grid" id="daisies-grid">
+              <!-- 84 Daisy items generated dynamically -->
+            </div>
+
+            <div class="daisy-legend">
+              <span class="legend-item"><span class="legend-dot active"></span> Выполнено (цветет)</span>
+              <span class="legend-item"><span class="legend-dot current"></span> Сегодня</span>
+              <span class="legend-item"><span class="legend-dot upcoming"></span> Впереди</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5: 12-Week Execution Dynamic Chart -->
+        <div class="section-block">
+          <div class="section-head">
+            <div>
+              <h3 class="section-title">📈 Динамика по 12 неделям</h3>
+              <p class="section-subtitle">Процент выполнения ключевых действий</p>
+            </div>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-bars-wrap" id="chart-bars">
+              <!-- 12 vertical bars rendered here -->
+            </div>
+            <div class="chart-summary-row">
+              <div class="badge-pill bg-light-green">🌟 Лучшая: <b id="chart-best-week">Н3 (94%)</b></div>
+              <div class="badge-pill bg-light-khaki">⚡ Средний темп: <b id="chart-avg-pace">82%</b></div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 2: ЦЕЛИ (SMART GOALS) ================= -->
+      <section class="tab-pane" id="pane-goals">
+        
+        <div class="section-head-page">
+          <div>
+            <h2 class="page-title">🎯 5 SMART-Целей</h2>
+            <p class="page-subtitle">Фокус на главном на 12 недель</p>
+          </div>
+          <button class="primary-btn-sm" id="btn-add-goal">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Добавить
+          </button>
+        </div>
+
+        <div class="goals-container" id="goals-list">
+          <!-- Dynamically populated goal cards with photo frame, delta pills, weekly checkins -->
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 3: СЕГОДНЯ (TODAY) ================= -->
+      <section class="tab-pane" id="pane-today">
+        
+        <!-- Day Navigation Header -->
+        <div class="day-nav-bar">
+          <button class="icon-btn-sm" id="btn-prev-day" aria-label="Предыдущий день">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <div class="day-nav-info" id="day-nav-trigger">
+            <span class="day-nav-date" id="today-display-date">Пятница, 2 Октября</span>
+            <span class="day-nav-sprint" id="today-display-sprint">НЕДЕЛЯ 5 • ДЕНЬ 33</span>
+          </div>
+          <button class="icon-btn-sm" id="btn-next-day" aria-label="Следующий день">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+
+        <!-- Time Budget & Mode Balance Card (From TZ Specification!) -->
+        <div class="card time-budget-card">
+          <div class="budget-header">
+            <div class="budget-title-wrap">
+              <span class="budget-subtitle">БАЛАНС ВРЕМЕНИ ДНЯ</span>
+              <h4 class="budget-title" id="budget-mode-title">Режим «Лёгкий»</h4>
+            </div>
+            <div class="budget-mode-badge" id="budget-status-pill">
+              В норме ✓
+            </div>
+          </div>
+
+          <div class="budget-stats-row">
+            <div class="b-stat">
+              <span class="b-val" id="b-val-budget">40 мин</span>
+              <span class="b-lbl">лимит режима</span>
+            </div>
+            <div class="b-divider">•</div>
+            <div class="b-stat">
+              <span class="b-val" id="b-val-planned">35 мин</span>
+              <span class="b-lbl">запланировано</span>
+            </div>
+            <div class="b-divider">•</div>
+            <div class="b-stat">
+              <span class="b-val text-green" id="b-val-left">5 мин</span>
+              <span class="b-lbl" id="b-lbl-left">остаток</span>
+            </div>
+          </div>
+
+          <!-- Visual meter -->
+          <div class="budget-meter-wrap">
+            <div class="budget-meter-bar">
+              <div class="meter-fill" id="budget-meter-fill" style="width: 87%;"></div>
+            </div>
+            <div class="meter-info">
+              <span>Свободных: <b>120 мин</b> (резерв 30%)</span>
+              <span id="meter-percent-txt">87% лимита</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions List -->
+        <div class="section-block">
+          <div class="section-head">
+            <h3 class="section-title">📋 Задачи дня</h3>
+            <span class="tasks-count-pill" id="today-tasks-count">2 / 3 выполнено</span>
+          </div>
+
+          <div class="today-tasks-list" id="today-tasks-list">
+            <!-- Dynamic task items with time tags & heart checks -->
+          </div>
+
+          <button class="add-task-btn" id="btn-add-today-task">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Добавить действие
+          </button>
+        </div>
+
+        <!-- Day Notes & Wins -->
+        <div class="section-block">
+          <div class="section-head">
+            <h3 class="section-title">✨ Заметка дня</h3>
+          </div>
+          <div class="card note-card">
+            <textarea id="today-note-input" placeholder="Главное событие, инсайт или благодарность сегодняшнего дня..." rows="3"></textarea>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 4: НЕДЕЛЯ (WEEK OVERVIEW & REFLECTION) ================= -->
+      <section class="tab-pane" id="pane-week">
+        
+        <div class="section-head-page">
+          <div>
+            <h2 class="page-title">📅 Неделя <span id="week-page-number">5</span></h2>
+            <p class="page-subtitle" id="week-page-dates">28 Сен — 04 Окт</p>
+          </div>
+          <div class="week-switcher-pill">
+            <button class="week-prev-btn" id="btn-week-prev">&lsaquo;</button>
+            <span id="week-current-pill">Неделя 5</span>
+            <button class="week-next-btn" id="btn-week-next">&rsaquo;</button>
+          </div>
+        </div>
+
+        <!-- 7-Day Vertical Overview (From Section 2 of User Prompt!) -->
+        <div class="section-block">
+          <div class="section-head">
+            <h3 class="section-title">🗓️ 7 Дней Недели</h3>
+            <span class="badge-pill bg-light-green" id="week-total-balance">Время: 210 мин</span>
+          </div>
+
+          <div class="week-seven-days" id="week-seven-days-list">
+            <!-- 7 daily cards rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Weekly Reflection Section (Matching Screenshot media_1790928495099.png!) -->
+        <div class="section-block">
+          <div class="section-head">
+            <div>
+              <h3 class="section-title">🔄 Рефлексия недели</h3>
+              <p class="section-subtitle">Честный анализ и перезагрузка</p>
+            </div>
+            <div class="stars-rating" id="week-stars-rating">
+              <span class="star" data-val="1">★</span>
+              <span class="star" data-val="2">★</span>
+              <span class="star" data-val="3">★</span>
+              <span class="star" data-val="4">★</span>
+              <span class="star" data-val="5">★</span>
+            </div>
+          </div>
+
+          <!-- Stage 1: Что сработало -->
+          <div class="card reflection-card stage-worked">
+            <div class="ref-card-header">
+              <span class="ref-icon">🌿</span>
+              <div>
+                <h4 class="ref-title">Что сработало?</h4>
+                <p class="ref-subtitle">Победы, эффективные приёмы, что помогло двигаться</p>
+              </div>
+            </div>
+            <textarea id="ref-worked" rows="3" placeholder="Например: Утренние пробежки до завтрака дали заряд энергии; фокус-блок 30 минут без соцсетей..."></textarea>
+          </div>
+
+          <!-- Stage 2: Что не сработало -->
+          <div class="card reflection-card stage-failed">
+            <div class="ref-card-header">
+              <span class="ref-icon">🪵</span>
+              <div>
+                <h4 class="ref-title">Что не сработало?</h4>
+                <p class="ref-subtitle">Где был спад, что отвлекло, ошибки планирования</p>
+              </div>
+            </div>
+            <textarea id="ref-failed" rows="3" placeholder="Например: Засиживался за телефоном после 23:00; недооценил сложность задачи в четверг..."></textarea>
+          </div>
+
+          <!-- Stage 3: Инсайты и выводы -->
+          <div class="card reflection-card stage-insights">
+            <div class="ref-card-header">
+              <span class="ref-icon">💡</span>
+              <div>
+                <h4 class="ref-title">Инсайты и выводы</h4>
+                <p class="ref-subtitle">Чему научила эта неделя? Что внедрить дальше?</p>
+              </div>
+            </div>
+            <textarea id="ref-insights" rows="3" placeholder="Например: Главное не скорость, а регулярность; лучше 20 минут каждый день, чем 2 часа раз в неделю..."></textarea>
+          </div>
+
+          <!-- Focus for next week -->
+          <div class="card reflection-card stage-focus">
+            <div class="ref-card-header">
+              <span class="ref-icon">🎯</span>
+              <div>
+                <h4 class="ref-title">Главный фокус следующей недели</h4>
+                <p class="ref-subtitle">Одно ключевое правило или задача недели №1</p>
+              </div>
+            </div>
+            <input type="text" id="ref-focus" placeholder="Фокус недели: ранний отбой до 23:00 и завершение модуля 3...">
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 5: MENTAL UPGRADE ================= -->
+      <section class="tab-pane" id="pane-mental">
+        
+        <div class="section-head-page">
+          <div>
+            <h2 class="page-title">⚡ Mental Upgrade</h2>
+            <p class="page-subtitle">Внутренний компас и фундамент решений</p>
+          </div>
+        </div>
+
+        <div class="mental-cards-stack">
+          
+          <!-- Pillar 1: Vision 3-5 Years -->
+          <div class="card mental-card">
+            <div class="mental-badge">ШАГ 1</div>
+            <div class="mental-header">
+              <span class="mental-icon">🔮</span>
+              <div>
+                <h3 class="mental-title">Видение на 3–5 лет</h3>
+                <p class="mental-desc">Большая картина: где и кем я вижу себя, когда сниму все ограничения?</p>
+              </div>
+            </div>
+            <textarea id="mental-vision" rows="4" placeholder="Опишите в красках свою жизнь через 3-5 лет: уровень энергии, бизнес/карьера, финансы, окружение, ощущение свободы..."></textarea>
+          </div>
+
+          <!-- Pillar 2: Emotional Why -->
+          <div class="card mental-card">
+            <div class="mental-badge">ШАГ 2</div>
+            <div class="mental-header">
+              <span class="mental-icon">❤️</span>
+              <div>
+                <h3 class="mental-title">Эмоциональное «Зачем»</h3>
+                <p class="mental-desc">Почему это действительно важно? Что я почувствую, когда достигну этого?</p>
+              </div>
+            </div>
+            <textarea id="mental-why" rows="4" placeholder="Истинные чувства и драйвер: гордость собой, безопасность близких, свобода выбора, ощущение мастерства..."></textarea>
+          </div>
+
+          <!-- Pillar 3: Great Refusal -->
+          <div class="card mental-card">
+            <div class="mental-badge">ШАГ 3</div>
+            <div class="mental-header">
+              <span class="mental-icon">🚫</span>
+              <div>
+                <h3 class="mental-title">Великий отказ</h3>
+                <p class="mental-desc">От чего я сознательно отказываюсь на эти 12 недель ради своих целей?</p>
+              </div>
+            </div>
+            
+            <div class="refusals-list" id="mental-refusals-list">
+              <!-- Preset & custom refusal tags -->
+            </div>
+
+            <div class="add-refusal-row">
+              <input type="text" id="new-refusal-input" placeholder="Добавить свой отказ (напр. сладкое после 19:00)...">
+              <button class="primary-btn-sm" id="btn-add-refusal">+</button>
+            </div>
+          </div>
+
+          <!-- Pillar 4: Price & Sacrifices -->
+          <div class="card mental-card">
+            <div class="mental-badge">ШАГ 4</div>
+            <div class="mental-header">
+              <span class="mental-icon">⚖️</span>
+              <div>
+                <h3 class="mental-title">Цена и жертвы</h3>
+                <p class="mental-desc">Какую цену я готов заплатить? Каких усилий и дисциплины это потребует?</p>
+              </div>
+            </div>
+            <textarea id="mental-sacrifices" rows="4" placeholder="Ранние подъёмы в 6:30, дискомфорт тренировок, регулярный отказ от прокрастинации в пользу действий..."></textarea>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR (Matching mobile app / tennis app feel) -->
+    <nav class="bottom-nav">
+      <button class="nav-tab active" data-tab="dashboard">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span>Обзор</span>
+      </button>
+
+      <button class="nav-tab" data-tab="goals">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <circle cx="12" cy="12" r="6"></circle>
+          <circle cx="12" cy="12" r="2"></circle>
+        </svg>
+        <span>Цели</span>
+      </button>
+
+      <button class="nav-tab" data-tab="today">
+        <div class="tab-badge-indicator" id="nav-today-indicator"></div>
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 11 12 14 22 4"></polyline>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+        <span>Сегодня</span>
+      </button>
+
+      <button class="nav-tab" data-tab="week">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <span>Неделя</span>
+      </button>
+
+      <button class="nav-tab" data-tab="mental">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <span>Mental</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- ================= MODALS & BOTTOM SHEETS ================= -->
+
+  <!-- Modal: Edit / Add Goal -->
+  <div class="modal-backdrop" id="modal-goal">
+    <div class="modal-sheet">
+      <div class="modal-sheet-handle"></div>
+      <div class="modal-header">
+        <h3 class="modal-title" id="goal-modal-title">🎯 Настройка цели</h3>
+        <button class="close-btn" id="btn-close-goal-modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="goal-form-id">
+
+        <!-- Photo Upload Frame (Aesthetic Polaroid frame) -->
+        <div class="photo-upload-container">
+          <div class="photo-preview-box" id="goal-photo-preview">
+            <span class="photo-placeholder-txt">📷 Нажмите, чтобы загрузить фото цели</span>
+          </div>
+          <input type="file" id="goal-photo-input" accept="image/*" style="display: none;">
+          <div class="photo-controls">
+            <button type="button" class="link-btn-sm" id="btn-select-photo">Выбрать фото</button>
+            <button type="button" class="link-btn-sm text-danger" id="btn-remove-photo" style="display: none;">Удалить</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Название цели (SMART)</label>
+          <input type="text" id="goal-form-title" class="form-input" placeholder="Например: Снизить вес до 68 кг с сохранением мышц">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Категория</label>
+            <select id="goal-form-cat" class="form-select">
+              <option value="Здоровье">🌿 Здоровье</option>
+              <option value="Бизнес">💼 Бизнес</option>
+              <option value="Финансы">💰 Финансы</option>
+              <option value="Обучение">📚 Обучение</option>
+              <option value="Личное">✨ Личное</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Единица (кг, $, шт...)</label>
+            <input type="text" id="goal-form-unit" class="form-input" placeholder="кг / руб / книги">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Старт</label>
+            <input type="number" id="goal-form-start" class="form-input" placeholder="78">
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Сейчас</label>
+            <input type="number" id="goal-form-curr" class="form-input" placeholder="72.5">
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Цель</label>
+            <input type="number" id="goal-form-target" class="form-input" placeholder="68">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Ключевые регулярные действия (через запятую или перенос строки)</label>
+          <textarea id="goal-form-actions" class="form-textarea" rows="3" placeholder="1. 10 000 шагов ежедневно&#10;2. 3 силовые тренировки в неделю&#10;3. Дефицит калорий 300 ккал"></textarea>
+        </div>
+
+        <div class="modal-actions-row">
+          <button type="button" class="btn-secondary" id="btn-cancel-goal">Отмена</button>
+          <button type="button" class="btn-primary" id="btn-save-goal">Сохранить цель</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Today Task -->
+  <div class="modal-backdrop" id="modal-task">
+    <div class="modal-sheet">
+      <div class="modal-sheet-handle"></div>
+      <div class="modal-header">
+        <h3 class="modal-title">⏱️ Добавить действие дня</h3>
+        <button class="close-btn" id="btn-close-task-modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Что нужно сделать?</label>
+          <input type="text" id="task-form-title" class="form-input" placeholder="Например: Пробежка 4 км в легком темпе">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Длительность (минуты)</label>
+          <div class="minutes-presets">
+            <button type="button" class="preset-pill" data-mins="15">15м</button>
+            <button type="button" class="preset-pill active" data-mins="20">20м</button>
+            <button type="button" class="preset-pill" data-mins="30">30м</button>
+            <button type="button" class="preset-pill" data-mins="45">45м</button>
+            <button type="button" class="preset-pill" data-mins="60">60м</button>
+          </div>
+          <input type="number" id="task-form-mins" class="form-input mt-2" value="20" placeholder="Точное число минут">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Связать с целью (опционально)</label>
+          <select id="task-form-goal" class="form-select">
+            <option value="">Без привязки к цели</option>
+            <!-- Goal options filled dynamically -->
+          </select>
+        </div>
+
+        <div class="modal-actions-row">
+          <button type="button" class="btn-secondary" id="btn-cancel-task">Отмена</button>
+          <button type="button" class="btn-primary" id="btn-save-task">Добавить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Settings & Backup -->
+  <div class="modal-backdrop" id="modal-settings">
+    <div class="modal-sheet">
+      <div class="modal-sheet-handle"></div>
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ Настройки планера</h3>
+        <button class="close-btn" id="btn-close-settings">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        
+        <!-- Sprint Dates & Mode -->
+        <div class="settings-group">
+          <h4 class="settings-group-title">Параметры 12-недельного спринта</h4>
+          
+          <div class="form-group">
+            <label class="form-label">Дата старта спринта</label>
+            <input type="date" id="set-start-date" class="form-input">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Режим интенсивности</label>
+            <select id="set-mode" class="form-select">
+              <option value="easy">Лёгкий режим (коэфф. 0.5 — мягкий старт)</option>
+              <option value="optimal">Оптимальный режим (коэфф. 0.75 — баланс)</option>
+              <option value="hard">Интенсивный режим (коэфф. 1.0 — максимальный фокус)</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label">Свободное время (мин)</label>
+              <input type="number" id="set-free-minutes" class="form-input" value="120">
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label">Буфер резерва (%)</label>
+              <input type="number" id="set-reserve-percent" class="form-input" value="30">
+            </div>
+          </div>
+          <p class="settings-hint">При 120 мин свободных, 30% буфера и режиме «Лёгкий» чистый лимит дня равен <b>40 минут</b>.</p>
+        </div>
+
+        <!-- Data Management & Backups -->
+        <div class="settings-group">
+          <h4 class="settings-group-title">Управление данными и резервные копии</h4>
+          <p class="settings-hint">Все данные сохраняются прямо в памяти вашего телефона (LocalStorage). Никаких серверов, полная конфиденциальность.</p>
+          
+          <div class="settings-btn-grid">
+            <button type="button" class="btn-outline" id="btn-export-json">
+              📥 Скачать копию (JSON)
+            </button>
+            <button type="button" class="btn-outline" id="btn-import-trigger">
+              📤 Восстановить из файла
+            </button>
+            <input type="file" id="file-import-input" accept=".json" style="display: none;">
+          </div>
+
+          <div class="settings-btn-grid mt-2">
+            <button type="button" class="btn-secondary" id="btn-reset-demo">
+              ✨ Вернуть демо-данные
+            </button>
+            <button type="button" class="btn-danger-outline" id="btn-clear-all">
+              🧹 Очистить всё (с нуля)
+            </button>
+          </div>
+        </div>
+
+        <div class="app-version-info">
+          <span>12 WEEKS • Версия 2.0 • Offline-First</span>
+          <span id="storage-usage-info">Память: ~45 КБ</span>
+        </div>
+
+        <div class="modal-actions-row">
+          <button type="button" class="btn-primary" id="btn-save-settings">Готово</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
