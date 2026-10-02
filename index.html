@@ -18,7 +18,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   
-  <link rel="stylesheet" href="style.css?v=3.0">
+  <link rel="stylesheet" href="style.css?v=3.1">
 </head>
 <body>
   <!-- Canvas for celebration confetti -->
@@ -118,25 +118,31 @@
           </div>
         </div>
 
-        <!-- Section 2: Top Goals Quick Glance -->
+        <!-- Section 2: Today Primary Focus (Answer to "Что мне делать сегодня?") -->
+        <div class="section-block" id="dash-today-section">
+          <div class="section-head">
+            <div>
+              <h3 class="section-title">⚡ Сегодня на повестке</h3>
+              <p class="section-subtitle" id="dash-today-subtitle">Главный фокус и действия дня</p>
+            </div>
+            <button class="link-btn" onclick="app.switchTab('today')">Открыть день &rarr;</button>
+          </div>
+          <div class="card today-focus-card" id="dash-today-focus-card">
+            <!-- Dynamically populated: Highlight of the day + tasks list + check buttons -->
+          </div>
+        </div>
+
+        <!-- Section 3: Top Goals Quick Glance -->
         <div class="section-block">
           <div class="section-head">
-            <h3 class="section-title">🎯 Прогресс целей</h3>
+            <div>
+              <h3 class="section-title">🎯 Прогресс целей</h3>
+              <p class="section-subtitle">Связка: Действия недели &rarr; Результат</p>
+            </div>
             <button class="link-btn" onclick="app.switchTab('goals')">Все цели &rarr;</button>
           </div>
           <div class="dash-goals-list" id="dash-top-goals">
             <!-- Dynamically populated goal preview cards -->
-          </div>
-        </div>
-
-        <!-- Section 3: Today Widget Glance -->
-        <div class="section-block">
-          <div class="section-head">
-            <h3 class="section-title">📝 Сегодня на повестке</h3>
-            <button class="link-btn" onclick="app.switchTab('today')">Открыть &rarr;</button>
-          </div>
-          <div class="card glance-card" id="dash-today-glance">
-            <!-- Dynamically populated -->
           </div>
         </div>
 
@@ -655,6 +661,14 @@
           </select>
         </div>
 
+        <div class="form-group main-task-toggle-group">
+          <label class="toggle-control-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="task-form-ismain" style="width:18px; height:18px; accent-color:var(--olive-primary); cursor:pointer;">
+            <span style="font-size:0.82rem; font-weight:800; color:var(--olive-dark);">⭐ Сделать главным делом дня (The One Thing)</span>
+          </label>
+          <p class="settings-hint" style="margin-left:26px; margin-top:2px;">«Если сегодня выполню только одно действие — вот это»</p>
+        </div>
+
         <div class="form-group">
           <label class="form-label">Повторить по дням этой недели</label>
           <div class="day-selector-grid" id="task-day-selector">
@@ -760,6 +774,6 @@
   </div>
 
   <!-- Scripts -->
-  <script src="app.js?v=3.0"></script>
+  <script src="app.js?v=3.1"></script>
 </body>
 </html>

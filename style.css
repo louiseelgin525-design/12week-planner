@@ -2109,3 +2109,173 @@ body {
 .btn-copy-week:active {
   transform: scale(0.97);
 }
+
+/* =========================================================================
+   DASHBOARD TODAY FOCUS & HIGHLIGHT ("Что мне делать сегодня?")
+   ========================================================================= */
+.today-focus-card {
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--sage-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+}
+
+.today-focus-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--sage-border);
+}
+
+.today-focus-meta {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--olive-dark);
+}
+
+.today-focus-empty {
+  text-align: center;
+  padding: 24px 14px;
+}
+
+.today-focus-empty-text {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.today-focus-progress-row {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--sage-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Highlight / Main Task of the day */
+.task-item.is-main {
+  background: #FFFDF5;
+  border: 1.5px solid #E5A93C;
+  box-shadow: 0 2px 10px rgba(229, 169, 60, 0.14);
+}
+
+.task-item.is-main.done {
+  background: #F9FAF5;
+  border-color: var(--sage-border);
+  box-shadow: none;
+}
+
+.task-main-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: #B57410;
+  background: #FEF3D6;
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  margin-bottom: 4px;
+}
+
+.task-star-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: #D6D3C7;
+  cursor: pointer;
+  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.task-star-btn:hover {
+  transform: scale(1.18);
+  color: #E5A93C;
+}
+
+.task-star-btn.active {
+  color: #E5A93C;
+  filter: drop-shadow(0 1px 2px rgba(229, 169, 60, 0.45));
+}
+
+/* =========================================================================
+   GOAL LEAD-LAG ANALYTICS STRIP (Связка «Действия ➔ Результат»)
+   ========================================================================= */
+.goal-lead-lag-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--sage-border);
+  border-radius: var(--radius-md);
+  padding: 10px 6px;
+  margin: 12px 0 10px;
+  text-align: center;
+}
+
+.lead-lag-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lead-lag-label {
+  font-size: 0.60rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lead-lag-val {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: var(--olive-dark);
+}
+
+.goal-forecast-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #F4F6F0;
+  border: 1px solid var(--sage-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.74rem;
+  color: var(--olive-dark);
+  margin-bottom: 12px;
+  line-height: 1.35;
+}
+
+.dash-goal-lead-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 0.70rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.dash-goal-lead-pill {
+  background: var(--bg-card-subtle);
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--sage-border);
+  color: var(--olive-dark);
+}

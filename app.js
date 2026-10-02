@@ -687,7 +687,81 @@
       document.getElementById('dash-progress-label').textContent = `День ${this.state.currentDayOffset + 1} из 84 (${sprintProgress}% спринта)`;
       document.getElementById('dash-week-label').textContent = `Неделя ${this.state.currentWeekNumber}`;
 
-      // 2. Top Goals (Clean full-width rows with sharp aligned thumbnails)
+      // 2. Today Primary Focus ("Что мне делать сегодня?")
+      const todayFocusWrap = document.getElementById('dash-today-focus-card');
+      const curOffset = (this.state.currentDayOffset !== undefined) ? this.state.currentDayOffset : 0;
+      const curTasks = this.getDayTasks(curOffset);
+      const doneCount = curTasks.filter(t => t.done).length;
+      const tb = this.calculateTimeBudget(curOffset);
+
+      if (todayFocusWrap) {
+        if (curTasks.length === 0) {
+          todayFocusWrap.innerHTML = `
+            <div class="today-focus-empty">
+              <div style="font-size:2rem; margin-bottom:6px;">⚡</div>
+              <div class="today-focus-empty-text">
+                На сегодня пока нет запланированных действий.<br>
+                Запланируйте 1–3 ключевых дела, чтобы день стал победой!
+              </div>
+              <button class="btn-primary" onclick="app.openTaskModal()">+ Запланировать главное на сегодня</button>
+            </div>
+          `;
+        } else {
+          // Sort: main task first
+          const sorted = [...curTasks].sort((a, b) => (b.isMain ? 1 : 0) - (a.isMain ? 1 : 0));
+          
+          let tasksHtml = '';
+          sorted.forEach(t => {
+            const goal = this.state.goals.find(g => g.id === t.goalId);
+            const goalTag = goal ? `<span class="task-goal-tag">🎯 ${this.escapeHtml(goal.category)}</span>` : '';
+            const isMain = !!t.isMain;
+
+            tasksHtml += `
+              <div class="task-item ${t.done ? 'done' : ''} ${isMain ? 'is-main' : ''}" style="margin-bottom:8px;">
+                <div class="task-left">
+                  <button class="task-check-btn" onclick="app.toggleTask('${t.id}')">
+                    <span class="task-check-icon">✓</span>
+                  </button>
+                  <div class="task-details">
+                    ${isMain ? '<span class="task-main-badge">⭐ ГЛАВНОЕ СЕГОДНЯ</span>' : ''}
+                    <span class="task-title" style="${isMain ? 'font-weight:800; font-size:0.92rem;' : ''}">${this.escapeHtml(t.title)}</span>
+                    <div class="task-meta">
+                      <span class="task-mins-pill">⏱️ ${t.mins} мин</span>
+                      ${goalTag}
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:2px;">
+                  <button class="task-star-btn ${isMain ? 'active' : ''}" onclick="app.toggleMainTask('${t.id}')" title="${isMain ? 'Главное дело дня' : 'Сделать главным'}">★</button>
+                  <button class="task-delete-btn" onclick="app.deleteTask('${t.id}')" title="Удалить">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+
+          todayFocusWrap.innerHTML = `
+            <div class="today-focus-head-row">
+              <span class="today-focus-meta">
+                ${curTasks.length} ${this.declension(curTasks.length, ['действие', 'действия', 'действий'])} • ${tb.planned} мин
+              </span>
+              <span class="badge-pill ${tb.isOverloaded ? 'bg-light-khaki text-danger' : 'bg-light-green'}">
+                ${tb.isOverloaded ? 'Перегруз ⚠️' : 'Лимит дня: ' + tb.limit + 'м'}
+              </span>
+            </div>
+            <div class="today-focus-list">
+              ${tasksHtml}
+            </div>
+            <div class="today-focus-progress-row">
+              <span>Прогресс: <b>${doneCount} из ${curTasks.length} выполнено</b></span>
+              <button class="link-btn-sm" onclick="app.openTaskModal()">+ Добавить ещё</button>
+            </div>
+          `;
+        }
+      }
+
+      // 3. Top Goals (with Lead-Lag action connection)
       const goalsWrap = document.getElementById('dash-top-goals');
       goalsWrap.innerHTML = '';
       this.state.goals.slice(0, 4).forEach(goal => {
@@ -698,6 +772,33 @@
         const sign = delta > 0 ? '+' : '';
         const deltaStr = `${sign}${delta} ${goal.unit}`;
         const progress = this.calculateGoalProgress(goal);
+
+        // Calculate Lead Measures (Действия недели и общий темп)
+        const curWk = this.state.currentWeekNumber;
+        const wkStart = (curWk - 1) * 7;
+        let wkTasksTotal = 0;
+        let wkTasksDone = 0;
+        for (let d = 0; d < 7; d++) {
+          const dayD = this.getDayData(wkStart + d);
+          if (dayD && Array.isArray(dayD.tasks)) {
+            const goalTasks = dayD.tasks.filter(t => t.goalId === goal.id);
+            wkTasksTotal += goalTasks.length;
+            wkTasksDone += goalTasks.filter(t => t.done).length;
+          }
+        }
+        const weekTasksStr = wkTasksTotal > 0 ? `${wkTasksDone}/${wkTasksTotal}` : '—';
+
+        let sprintGoalTasksTotal = 0;
+        let sprintGoalTasksDone = 0;
+        for (let o = 0; o <= this.state.currentDayOffset; o++) {
+          const dayD = this.getDayData(o);
+          if (dayD && Array.isArray(dayD.tasks)) {
+            const goalTasks = dayD.tasks.filter(t => t.goalId === goal.id);
+            sprintGoalTasksTotal += goalTasks.length;
+            sprintGoalTasksDone += goalTasks.filter(t => t.done).length;
+          }
+        }
+        const pacePercent = sprintGoalTasksTotal > 0 ? Math.round((sprintGoalTasksDone / sprintGoalTasksTotal) * 100) : (progress > 0 ? progress : 0);
 
         const photoUrl = goal.photo || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=400&q=80';
 
@@ -716,31 +817,19 @@
                 <div class="progress-bar-fill" style="width: ${progress}%;"></div>
               </div>
               <div class="dash-goal-meta-row">
-                <span>Сейчас: <b>${goal.currentVal} ${goal.unit}</b> (цель ${goal.targetVal})</span>
+                <span>Сейчас: <b>${goal.currentVal} ${goal.unit}</b></span>
                 <span class="highlight-text">${progress}%</span>
               </div>
+            </div>
+            <div class="dash-goal-lead-row">
+              <span class="dash-goal-lead-pill">Действия недели: <b>${weekTasksStr}</b></span>
+              <span class="dash-goal-lead-pill">Темп: <b>${pacePercent}%</b></span>
             </div>
           </div>
         `;
         item.addEventListener('click', () => this.jumpToGoal(goal.id));
         goalsWrap.appendChild(item);
       });
-
-      // 3. Today Glance
-      const glance = document.getElementById('dash-today-glance');
-      const curOffset = (this.state.currentDayOffset !== undefined) ? this.state.currentDayOffset : 32;
-      const tb = this.calculateTimeBudget(curOffset);
-      const curTasks = this.getDayTasks(curOffset);
-      const doneTasks = curTasks.filter(t => t.done).length;
-      glance.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="font-size:0.85rem; font-weight:800; color:var(--olive-dark);">Задачи: ${doneTasks} из ${curTasks.length} выполнено</span>
-          <span class="badge-pill ${tb.isOverloaded ? 'bg-light-khaki text-danger' : 'bg-light-green'}">${tb.planned} / ${tb.limit} мин</span>
-        </div>
-        <div class="progress-bar-bg" style="height:6px;">
-          <div class="progress-bar-fill" style="width:${tb.percentUsed}%; background:${tb.isOverloaded ? 'var(--terracotta)' : 'var(--olive-primary)'};"></div>
-        </div>
-      `;
 
       // 4. Daisies 84 Grid (Flower blooming tracker!)
       document.getElementById('dash-daisy-count').textContent = `${doneDaisies} / 84`;
@@ -899,6 +988,50 @@
           </div>
         `).join('');
 
+        // Calculate Lead Measures (Действия недели и общий темп)
+        const curWk = this.state.currentWeekNumber;
+        const wkStart = (curWk - 1) * 7;
+        let wkTasksTotal = 0;
+        let wkTasksDone = 0;
+        for (let d = 0; d < 7; d++) {
+          const dayD = this.getDayData(wkStart + d);
+          if (dayD && Array.isArray(dayD.tasks)) {
+            const goalTasks = dayD.tasks.filter(t => t.goalId === goal.id);
+            wkTasksTotal += goalTasks.length;
+            wkTasksDone += goalTasks.filter(t => t.done).length;
+          }
+        }
+        const weekTasksStr = wkTasksTotal > 0 ? `${wkTasksDone}/${wkTasksTotal}` : '—';
+
+        let sprintGoalTasksTotal = 0;
+        let sprintGoalTasksDone = 0;
+        for (let o = 0; o <= this.state.currentDayOffset; o++) {
+          const dayD = this.getDayData(o);
+          if (dayD && Array.isArray(dayD.tasks)) {
+            const goalTasks = dayD.tasks.filter(t => t.goalId === goal.id);
+            sprintGoalTasksTotal += goalTasks.length;
+            sprintGoalTasksDone += goalTasks.filter(t => t.done).length;
+          }
+        }
+        const pacePercent = sprintGoalTasksTotal > 0 ? Math.round((sprintGoalTasksDone / sprintGoalTasksTotal) * 100) : (progress > 0 ? progress : 0);
+
+        let forecastText = '';
+        let forecastIcon = '📈';
+        if (sprintGoalTasksTotal === 0 && progress === 0) {
+          forecastIcon = '💡';
+          forecastText = 'Пока нет запланированных действий. Добавьте регулярные шаги в расписание недели, чтобы начать движение к цели.';
+        } else if (pacePercent >= 80) {
+          forecastIcon = '🎯';
+          const estWeek = Math.min(12, Math.max(curWk, Math.ceil(curWk + ((100 - progress) / Math.max(8, (progress / Math.max(1, curWk)))))));
+          forecastText = `Отличный темп (${pacePercent}%)! При текущей дисциплине действий цель прогнозируется к достижению на Неделе ${estWeek}.`;
+        } else if (pacePercent >= 65) {
+          forecastIcon = '⚡';
+          forecastText = `Стабильный темп (${pacePercent}%). Для гарантированного результата к 12-й неделе держите выполнение действий не ниже 80%.`;
+        } else {
+          forecastIcon = '⚠️';
+          forecastText = `Темп действий (${pacePercent}%) ниже планового. Отставание в действиях напрямую сдерживает результат. Сфокусируйтесь на ключевых шагах!`;
+        }
+
         card.innerHTML = `
           ${photoHtml}
           <div class="goal-card-top">
@@ -929,9 +1062,29 @@
           <div class="progress-bar-bg" style="height:8px; margin: 8px 0 4px;">
             <div class="progress-bar-fill" style="width: ${progress}%;"></div>
           </div>
-          <div style="display:flex; justify-content:space-between; font-size:0.7rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; font-size:0.7rem; font-weight:800; color:var(--text-muted); margin-bottom:8px;">
             <span>Выполнено</span>
             <span>${progress}%</span>
+          </div>
+
+          <div class="goal-lead-lag-strip">
+            <div class="lead-lag-item">
+              <span class="lead-lag-label">Результат</span>
+              <span class="lead-lag-val">${progress}%</span>
+            </div>
+            <div class="lead-lag-item">
+              <span class="lead-lag-label">Действия недели</span>
+              <span class="lead-lag-val">${weekTasksStr}</span>
+            </div>
+            <div class="lead-lag-item">
+              <span class="lead-lag-label">Темп действий</span>
+              <span class="lead-lag-val" style="color:${pacePercent >= 75 ? 'var(--olive-primary)' : (pacePercent >= 50 ? '#C2831F' : 'var(--terracotta)')};">${pacePercent}%</span>
+            </div>
+          </div>
+
+          <div class="goal-forecast-badge">
+            <span style="font-size:1.1rem; line-height:1;">${forecastIcon}</span>
+            <div><b>Прогноз:</b> ${forecastText}</div>
           </div>
 
           <div class="goal-actions-section">
@@ -1040,9 +1193,12 @@
           </div>
         `;
       } else {
-        tasks.forEach(task => {
+        // Sort: main task first
+        const sorted = [...tasks].sort((a, b) => (b.isMain ? 1 : 0) - (a.isMain ? 1 : 0));
+        sorted.forEach(task => {
           const item = document.createElement('div');
-          item.className = `task-item ${task.done ? 'done' : ''}`;
+          const isMain = !!task.isMain;
+          item.className = `task-item ${task.done ? 'done' : ''} ${isMain ? 'is-main' : ''}`;
 
           const goal = this.state.goals.find(g => g.id === task.goalId);
           const goalTag = goal ? `<span class="task-goal-tag">🎯 ${this.escapeHtml(goal.category)}</span>` : '';
@@ -1053,16 +1209,20 @@
                 <span class="task-check-icon">✓</span>
               </button>
               <div class="task-details">
-                <span class="task-title">${this.escapeHtml(task.title)}</span>
+                ${isMain ? '<span class="task-main-badge">⭐ ГЛАВНОЕ СЕГОДНЯ</span>' : ''}
+                <span class="task-title" style="${isMain ? 'font-weight:800; font-size:0.92rem;' : ''}">${this.escapeHtml(task.title)}</span>
                 <div class="task-meta">
                   <span class="task-mins-pill">⏱️ ${task.mins} мин</span>
                   ${goalTag}
                 </div>
               </div>
             </div>
-            <button class="task-delete-btn" onclick="app.deleteTask('${task.id}')" title="Удалить">
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
+            <div style="display:flex; align-items:center; gap:2px;">
+              <button class="task-star-btn ${isMain ? 'active' : ''}" onclick="app.toggleMainTask('${task.id}')" title="${isMain ? 'Главное дело дня' : 'Сделать главным'}">★</button>
+              <button class="task-delete-btn" onclick="app.deleteTask('${task.id}')" title="Удалить">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
           `;
 
           tasksWrap.appendChild(item);
@@ -1140,9 +1300,15 @@
           badgeHtml = `<span class="day-v-balance-badge bg-light-green">${totalMins} мин ✓</span>`;
         }
 
-        const summaryText = count > 0 
-          ? `${count} ${this.declension(count, ['действие', 'действия', 'действий'])} • ${totalMins} мин`
-          : 'Нажмите, чтобы запланировать';
+        const mainTask = dayData.tasks.find(t => t.isMain);
+        let summaryText = 'Нажмите, чтобы запланировать';
+        if (count > 0) {
+          if (mainTask) {
+            summaryText = `⭐ <b>${this.escapeHtml(mainTask.title)}</b> (${count} ${this.declension(count, ['действие', 'действия', 'действий'])})`;
+          } else {
+            summaryText = `${count} ${this.declension(count, ['действие', 'действия', 'действий'])} • ${totalMins} мин`;
+          }
+        }
 
         card.innerHTML = `
           <div class="day-v-left">
@@ -1287,8 +1453,19 @@
       });
     }
 
+    findDayOffsetByTaskId(taskId) {
+      if (this.state.days) {
+        for (const [offsetKey, dayData] of Object.entries(this.state.days)) {
+          if (dayData && Array.isArray(dayData.tasks) && dayData.tasks.some(t => t.id === taskId)) {
+            return parseInt(offsetKey, 10);
+          }
+        }
+      }
+      return (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
+    }
+
     toggleTask(taskId) {
-      const offset = (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
+      const offset = this.findDayOffsetByTaskId(taskId);
       const dayData = this.getDayData(offset);
       const task = dayData.tasks.find(t => t.id === taskId);
       if (task) {
@@ -1314,8 +1491,32 @@
       }
     }
 
+    toggleMainTask(taskId) {
+      const offset = this.findDayOffsetByTaskId(taskId);
+      const dayData = this.getDayData(offset);
+      const task = dayData.tasks.find(t => t.id === taskId);
+      if (task) {
+        const willBeMain = !task.isMain;
+        if (willBeMain) {
+          dayData.tasks.forEach(t => { t.isMain = false; });
+          task.isMain = true;
+          this.launchConfetti();
+          if ('vibrate' in navigator) navigator.vibrate([30, 50, 30]);
+        } else {
+          task.isMain = false;
+        }
+
+        if (offset === this.state.currentDayOffset) {
+          this.state.todayTasks = dayData.tasks;
+        }
+        this.saveState();
+        this.renderToday();
+        this.renderDashboard();
+      }
+    }
+
     deleteTask(taskId) {
-      const offset = (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
+      const offset = this.findDayOffsetByTaskId(taskId);
       const dayData = this.getDayData(offset);
       dayData.tasks = dayData.tasks.filter(t => t.id !== taskId);
 
@@ -1336,6 +1537,9 @@
       document.getElementById('task-form-title').value = '';
       document.getElementById('task-form-mins').value = '20';
       
+      const isMainCheck = document.getElementById('task-form-ismain');
+      if (isMainCheck) isMainCheck.checked = false;
+
       // Populate goal options
       const sel = document.getElementById('task-form-goal');
       sel.innerHTML = '<option value="">Без привязки к цели</option>';
@@ -1369,6 +1573,7 @@
       const title = document.getElementById('task-form-title').value.trim();
       const mins = parseInt(document.getElementById('task-form-mins').value, 10) || 20;
       const goalId = document.getElementById('task-form-goal').value;
+      const isMain = document.getElementById('task-form-ismain') ? document.getElementById('task-form-ismain').checked : false;
 
       if (!title) {
         alert('Пожалуйста, введите название действия');
@@ -1391,12 +1596,16 @@
       activeDays.forEach((dayIdx, i) => {
         const targetOffset = weekStartOffset + dayIdx;
         const dayData = this.getDayData(targetOffset);
+        if (isMain) {
+          dayData.tasks.forEach(t => { t.isMain = false; });
+        }
         dayData.tasks.push({
           id: 't-' + ts + '-' + i,
           title,
           mins,
           goalId,
-          done: false
+          done: false,
+          isMain: isMain
         });
 
         if (targetOffset === this.state.currentDayOffset) {
@@ -1441,7 +1650,8 @@
               title: t.title,
               mins: t.mins,
               goalId: t.goalId,
-              done: false
+              done: false,
+              isMain: !!t.isMain
             }));
             tgt.tasks = [...tgt.tasks, ...cloned];
             if ((currWeekStart + i) === this.state.currentDayOffset) {
