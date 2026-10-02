@@ -766,7 +766,10 @@
           cell.innerHTML = this.getDaisySvg(false);
         }
 
-        cell.title = `День ${d.dayIndex} (Нажмите, чтобы отметить)`;
+        const curDate = this.getDateForDayOffset(idx);
+        const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+        const dayDateStr = `${curDate.getDate()} ${months[curDate.getMonth()]}`;
+        cell.title = `День ${d.dayIndex} (${dayDateStr}) • ${d.completed ? 'Распустился 🌼' : 'Не закрыт'}`;
         cell.addEventListener('click', () => {
           d.completed = !d.completed;
           this.saveState();
@@ -777,21 +780,66 @@
         grid.appendChild(cell);
       });
 
-      // 5. 12-Week Chart
+      // 5. 12-Week Chart (Dynamically calculated from real weekly tasks or demo history)
       const chartWrap = document.getElementById('chart-bars');
       chartWrap.innerHTML = '';
-      this.state.weekHistory.forEach(w => {
+
+      let bestWeekNum = null;
+      let bestWeekPace = -1;
+      let totalPaceSum = 0;
+      let weeksWithDataCount = 0;
+
+      for (let w = 1; w <= 12; w++) {
+        const weekStartOffset = (w - 1) * 7;
+        let weekTotalTasks = 0;
+        let weekDoneTasks = 0;
+
+        for (let d = 0; d < 7; d++) {
+          const dData = this.getDayData(weekStartOffset + d);
+          if (dData && Array.isArray(dData.tasks)) {
+            weekTotalTasks += dData.tasks.length;
+            weekDoneTasks += dData.tasks.filter(t => t.done).length;
+          }
+        }
+
+        let pace = 0;
+        if (weekTotalTasks > 0) {
+          pace = Math.round((weekDoneTasks / weekTotalTasks) * 100);
+          weeksWithDataCount++;
+          totalPaceSum += pace;
+        } else if (this.state.weekHistory && this.state.weekHistory[w - 1] && this.state.weekHistory[w - 1].pace > 0) {
+          pace = this.state.weekHistory[w - 1].pace;
+          weeksWithDataCount++;
+          totalPaceSum += pace;
+        }
+
+        if (pace > 0 && pace > bestWeekPace) {
+          bestWeekPace = pace;
+          bestWeekNum = w;
+        }
+
         const col = document.createElement('div');
         col.className = 'chart-col';
-        const heightPct = w.pace > 0 ? Math.max(12, w.pace) : 4;
-        const isActive = w.week === this.state.currentWeekNumber;
+        const heightPct = pace > 0 ? Math.max(12, pace) : 4;
+        const isActive = w === this.state.currentWeekNumber;
 
         col.innerHTML = `
-          <div class="chart-bar ${isActive ? 'active-week' : ''}" style="height:${heightPct}%;" title="Неделя ${w.week}: ${w.pace}%"></div>
-          <span class="chart-col-label">Н${w.week}</span>
+          <div class="chart-bar ${isActive ? 'active-week' : ''}" style="height:${heightPct}%;" title="Неделя ${w}: ${pace}%"></div>
+          <span class="chart-col-label">Н${w}</span>
         `;
         chartWrap.appendChild(col);
-      });
+      }
+
+      // Dynamically update Best Week & Average Pace badges
+      const bestEl = document.getElementById('chart-best-week');
+      const avgEl = document.getElementById('chart-avg-pace');
+      if (bestEl) {
+        bestEl.textContent = (bestWeekNum !== null) ? `Н${bestWeekNum} (${bestWeekPace}%)` : '—';
+      }
+      if (avgEl) {
+        const avgPace = (weeksWithDataCount > 0) ? Math.round(totalPaceSum / weeksWithDataCount) : 0;
+        avgEl.textContent = (weeksWithDataCount > 0) ? `${avgPace}%` : '0%';
+      }
     }
 
     renderGoals() {
@@ -1245,6 +1293,13 @@
       const task = dayData.tasks.find(t => t.id === taskId);
       if (task) {
         task.done = !task.done;
+
+        // Auto-bloom daisy if all tasks of the day are completed!
+        if (this.state.daisies && this.state.daisies[offset]) {
+          const allTasksDone = dayData.tasks.length > 0 && dayData.tasks.every(t => t.done);
+          this.state.daisies[offset].completed = allTasksDone;
+        }
+
         if (offset === this.state.currentDayOffset) {
           this.state.todayTasks = dayData.tasks;
         }
@@ -1263,6 +1318,12 @@
       const offset = (this.selectedDayOffset !== undefined) ? this.selectedDayOffset : this.state.currentDayOffset;
       const dayData = this.getDayData(offset);
       dayData.tasks = dayData.tasks.filter(t => t.id !== taskId);
+
+      if (this.state.daisies && this.state.daisies[offset]) {
+        const allTasksDone = dayData.tasks.length > 0 && dayData.tasks.every(t => t.done);
+        this.state.daisies[offset].completed = allTasksDone;
+      }
+
       if (offset === this.state.currentDayOffset) {
         this.state.todayTasks = dayData.tasks;
       }
