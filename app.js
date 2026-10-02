@@ -244,6 +244,9 @@
       this.navTabs = document.querySelectorAll('.nav-tab');
       this.tabPanes = document.querySelectorAll('.tab-pane');
       this.ribbonContainer = document.getElementById('capsules-ribbon');
+      this.ribbonScrollBox = document.getElementById('capsules-ribbon-container');
+      this.btnRibbonLeft = document.getElementById('btn-ribbon-left');
+      this.btnRibbonRight = document.getElementById('btn-ribbon-right');
 
       // Modals
       this.modalGoal = document.getElementById('modal-goal');
@@ -270,6 +273,45 @@
           this.switchTab(tabId);
         });
       });
+
+      // Ribbon scroll buttons & desktop controls
+      if (this.btnRibbonLeft) {
+        this.btnRibbonLeft.addEventListener('click', () => this.scrollRibbon(-150));
+      }
+      if (this.btnRibbonRight) {
+        this.btnRibbonRight.addEventListener('click', () => this.scrollRibbon(150));
+      }
+
+      // Mouse wheel horizontal scroll on desktop
+      if (this.ribbonScrollBox) {
+        this.ribbonScrollBox.addEventListener('wheel', (e) => {
+          if (e.deltaY !== 0) {
+            e.preventDefault();
+            this.ribbonScrollBox.scrollLeft += e.deltaY;
+          }
+        }, { passive: false });
+
+        // Mouse drag-to-scroll on desktop
+        let isDown = false;
+        let startX, scrollLeft;
+        this.ribbonScrollBox.addEventListener('mousedown', (e) => {
+          isDown = true;
+          this.ribbonScrollBox.classList.add('grabbing');
+          startX = e.pageX - this.ribbonScrollBox.offsetLeft;
+          scrollLeft = this.ribbonScrollBox.scrollLeft;
+        });
+        window.addEventListener('mouseup', () => {
+          isDown = false;
+          if (this.ribbonScrollBox) this.ribbonScrollBox.classList.remove('grabbing');
+        });
+        this.ribbonScrollBox.addEventListener('mousemove', (e) => {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - this.ribbonScrollBox.offsetLeft;
+          const walk = (x - startX) * 1.5;
+          this.ribbonScrollBox.scrollLeft = scrollLeft - walk;
+        });
+      }
 
       // Settings modal
       document.getElementById('btn-open-settings').addEventListener('click', () => this.openSettings());
@@ -375,8 +417,15 @@
       badge.textContent = `НЕДЕЛЯ ${this.state.currentWeekNumber} ИЗ 12 • ДЕНЬ ${this.state.currentDayOffset + 1}`;
     }
 
+    scrollRibbon(delta) {
+      if (this.ribbonScrollBox) {
+        this.ribbonScrollBox.scrollBy({ left: delta, behavior: 'smooth' });
+      }
+    }
+
     renderCapsulesRibbon() {
       const ribbon = this.ribbonContainer;
+      if (!ribbon) return;
       ribbon.innerHTML = '';
 
       for (let w = 1; w <= 12; w++) {
@@ -386,8 +435,12 @@
 
         if (w < this.state.currentWeekNumber) {
           pill.classList.add('completed');
+          pill.title = `Неделя ${w} (завершена)`;
         } else if (w === this.state.currentWeekNumber) {
           pill.classList.add('active');
+          pill.title = `Неделя ${w} ★ (текущая активная неделя)`;
+        } else {
+          pill.title = `Неделя ${w} (впереди)`;
         }
 
         pill.addEventListener('click', () => {
@@ -397,6 +450,20 @@
 
         ribbon.appendChild(pill);
       }
+
+      // Auto-scroll so the active week capsule is centered in view
+      setTimeout(() => {
+        const activePill = ribbon.querySelector('.capsule-pill.active');
+        if (activePill && this.ribbonScrollBox) {
+          const pillLeft = activePill.offsetLeft;
+          const pillWidth = activePill.offsetWidth;
+          const boxWidth = this.ribbonScrollBox.offsetWidth;
+          this.ribbonScrollBox.scrollTo({
+            left: Math.max(0, pillLeft - (boxWidth / 2) + (pillWidth / 2)),
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
     }
 
     renderDashboard() {

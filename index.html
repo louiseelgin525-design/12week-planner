@@ -58,11 +58,15 @@
       </div>
     </header>
 
-    <!-- 12-Week Capsule Timeline Ribbon -->
-    <section class="capsules-ribbon-container">
-      <div class="capsules-ribbon" id="capsules-ribbon">
-        <!-- Rendered dynamically: Н1..Н12 capsules -->
+    <!-- 12-Week Capsule Timeline Ribbon with Desktop Arrows -->
+    <section class="capsules-nav-wrapper">
+      <button class="ribbon-arrow-btn" id="btn-ribbon-left" aria-label="Предыдущие недели" title="Листать назад">&#8249;</button>
+      <div class="capsules-ribbon-container" id="capsules-ribbon-container">
+        <div class="capsules-ribbon" id="capsules-ribbon">
+          <!-- Rendered dynamically: Н1..Н12 capsules -->
+        </div>
       </div>
+      <button class="ribbon-arrow-btn" id="btn-ribbon-right" aria-label="Следующие недели" title="Листать вперёд">&#8250;</button>
     </section>
 
     <!-- MAIN VIEW CONTAINER (Tabs) -->
