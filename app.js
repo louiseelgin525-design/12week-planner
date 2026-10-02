@@ -107,6 +107,24 @@
       { id: 't-3', title: 'Аудирование подкаста на английском', mins: 20, goalId: 'g-3', done: false }
     ],
     todayNote: 'Отличный утренний настрой! Пробежка зарядила энергией на весь день.',
+    daysData: {
+      32: {
+        tasks: [
+          { id: 't-1', title: 'Утренняя пробежка 4 км в лёгком темпе', mins: 20, goalId: 'g-1', done: true },
+          { id: 't-2', title: 'Клиентский созвон по внедрению', mins: 15, goalId: 'g-2', done: true },
+          { id: 't-3', title: 'Аудирование подкаста на английском', mins: 20, goalId: 'g-3', done: false }
+        ],
+        note: 'Отличный утренний настрой! Пробежка зарядила энергией на весь день.'
+      },
+      7: {
+        tasks: [
+          { id: 't-w2-1', title: 'Планирование спринта недели 2', mins: 15, goalId: 'g-2', done: true },
+          { id: 't-w2-2', title: 'Разминка и растяжка 20 минут', mins: 20, goalId: 'g-1', done: true },
+          { id: 't-w2-3', title: 'Повторение 30 слов на английском', mins: 15, goalId: 'g-3', done: true }
+        ],
+        note: 'Неделя 2 началась бодро! Закрыл все запланированные действия до обеда.'
+      }
+    },
     weekHistory: [
       { week: 1, pace: 80 },
       { week: 2, pace: 85 },
@@ -235,28 +253,55 @@
       if (!this.state.daysData || typeof this.state.daysData !== 'object') {
         this.state.daysData = {};
       }
-      const curOffset = (this.state.currentDayOffset !== undefined) ? this.state.currentDayOffset : 32;
-      if (!this.state.daysData[curOffset]) {
-        this.state.daysData[curOffset] = {
-          tasks: Array.isArray(this.state.todayTasks) && this.state.todayTasks.length > 0 
-            ? JSON.parse(JSON.stringify(this.state.todayTasks)) 
-            : [
-                { id: 't-1', title: 'Утренняя пробежка 4 км в лёгком темпе', mins: 20, goalId: 'g-1', done: true },
-                { id: 't-2', title: 'Клиентский созвон по внедрению', mins: 15, goalId: 'g-2', done: true },
-                { id: 't-3', title: 'Аудирование подкаста на английском', mins: 20, goalId: 'g-3', done: false }
-              ],
-          note: this.state.todayNote || 'Отличный утренний настрой! Пробежка зарядила энергией на весь день.'
-        };
+
+      // Self-healing: if goals are empty (user cleared data or started clean),
+      // purge any orphaned demo tasks left over from previous bug
+      if (!this.state.goals || this.state.goals.length === 0) {
+        const demoTaskIds = new Set(['t-1', 't-2', 't-3', 't-w2-1', 't-w2-2', 't-w2-3']);
+        const demoNotes = new Set([
+          'Отличный утренний настрой! Пробежка зарядила энергией на весь день.',
+          'Неделя 2 началась бодро! Закрыл все запланированные действия до обеда.'
+        ]);
+
+        let changed = false;
+        Object.keys(this.state.daysData).forEach(dayKey => {
+          const day = this.state.daysData[dayKey];
+          if (day && Array.isArray(day.tasks)) {
+            const initialCount = day.tasks.length;
+            day.tasks = day.tasks.filter(t => !demoTaskIds.has(t.id));
+            if (day.tasks.length !== initialCount) changed = true;
+          }
+          if (day && demoNotes.has(day.note)) {
+            day.note = '';
+            changed = true;
+          }
+          if (day && (!day.tasks || day.tasks.length === 0) && !day.note) {
+            delete this.state.daysData[dayKey];
+            changed = true;
+          }
+        });
+
+        if (Array.isArray(this.state.todayTasks)) {
+          const initialTodayCount = this.state.todayTasks.length;
+          this.state.todayTasks = this.state.todayTasks.filter(t => !demoTaskIds.has(t.id));
+          if (this.state.todayTasks.length !== initialTodayCount) changed = true;
+        }
+        if (demoNotes.has(this.state.todayNote)) {
+          this.state.todayNote = '';
+          changed = true;
+        }
+
+        if (changed) {
+          this.saveState();
+        }
       }
-      // Demo tasks for Day 8 (offset 7, Monday 7 September in Week 2)
-      if (!this.state.daysData[7]) {
-        this.state.daysData[7] = {
-          tasks: [
-            { id: 't-w2-1', title: 'Планирование спринта недели 2', mins: 15, goalId: 'g-2', done: true },
-            { id: 't-w2-2', title: 'Разминка и растяжка 20 минут', mins: 20, goalId: 'g-1', done: true },
-            { id: 't-w2-3', title: 'Повторение 30 слов на английском', mins: 15, goalId: 'g-3', done: true }
-          ],
-          note: 'Неделя 2 началась бодро! Закрыл все запланированные действия до обеда.'
+
+      // Legacy migration: ONLY if todayTasks has REAL user tasks and daysData for current day is absent
+      const curOffset = (this.state.currentDayOffset !== undefined) ? this.state.currentDayOffset : 0;
+      if (!this.state.daysData[curOffset] && Array.isArray(this.state.todayTasks) && this.state.todayTasks.length > 0) {
+        this.state.daysData[curOffset] = {
+          tasks: JSON.parse(JSON.stringify(this.state.todayTasks)),
+          note: this.state.todayNote || ''
         };
       }
     }
@@ -1523,7 +1568,9 @@
       if (confirm('Вернуть демонстрационные данные? Все текущие записи будут заменены примером из блокнота.')) {
         this.state = JSON.parse(JSON.stringify(DEFAULT_STATE));
         this.syncCurrentDayFromDate();
-        this.initDaysData();
+        if (this.state.currentDayOffset !== undefined && !this.state.daysData[this.state.currentDayOffset]) {
+          this.state.daysData[this.state.currentDayOffset] = JSON.parse(JSON.stringify(DEFAULT_STATE.daysData[32]));
+        }
         this.selectedDayOffset = this.state.currentDayOffset;
         this.selectedWeek = this.state.currentWeekNumber;
         this.saveState();
