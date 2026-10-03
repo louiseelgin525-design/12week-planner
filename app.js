@@ -1076,17 +1076,42 @@
       const list = document.getElementById('goals-list');
       list.innerHTML = '';
 
+      const addGoalBtn = document.getElementById('btn-add-goal');
+
       if (this.state.goals.length === 0) {
+        if (addGoalBtn) addGoalBtn.style.display = 'none'; // Hide duplicate header button when empty!
         list.innerHTML = `
-          <div class="card" style="text-align:center; padding:30px 20px;">
-            <p style="font-size:0.95rem; font-weight:700; color:var(--text-muted); margin-bottom:12px;">Пока нет добавленных целей спринта</p>
-            <button class="btn-primary" onclick="app.openGoalModal()">+ Добавить первую цель спринта</button>
+          <div class="card" style="text-align:center; padding:36px 20px;">
+            <div style="font-size:2.4rem; margin-bottom:10px;">🎯</div>
+            <h3 style="font-size:1.05rem; font-weight:800; color:var(--olive-dark); margin-bottom:6px;">С чего начнём ваш 12-недельный спринт?</h3>
+            <p style="font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:18px; line-height:1.45; max-width:320px; margin-left:auto; margin-right:auto;">
+              Выберите одну ключевую цель, которая даст максимальный прорыв и зарядит энергией на весь период.
+            </p>
+            <button class="btn-primary" onclick="app.openGoalModal()">+ Поставить первую цель</button>
           </div>
         `;
         return;
       }
 
-      if (this.state.goals.length >= 3) {
+      // Configure top-right button when goals exist
+      if (addGoalBtn) {
+        addGoalBtn.style.display = 'inline-flex';
+        if (this.state.goals.length < 3) {
+          addGoalBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Новая цель
+          `;
+        } else if (this.state.goals.length < 5) {
+          addGoalBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Ещё цель
+          `;
+        } else {
+          addGoalBtn.innerHTML = `5 из 5 (макс)`;
+        }
+      }
+
+      if (this.state.goals.length >= 4) {
         const hintBox = document.createElement('div');
         hintBox.className = 'goal-focus-hint-box';
         hintBox.style.marginBottom = '14px';
@@ -1261,6 +1286,45 @@
 
         list.appendChild(card);
       });
+
+      // Progressive Goal Add-Slot & Focus Celebration (Marketer & Designer UX)
+      const count = this.state.goals.length;
+      if (count === 1) {
+        const slot = document.createElement('div');
+        slot.className = 'goal-add-slot-card';
+        slot.innerHTML = `
+          <div class="add-slot-icon">+</div>
+          <div class="add-slot-text">
+            <div class="add-slot-title">Поставить вторую цель (2 из 3)</div>
+            <div class="add-slot-sub">Например, из другой сферы: бизнес, финансы, карьера или обучение</div>
+          </div>
+        `;
+        slot.addEventListener('click', () => this.openGoalModal());
+        list.appendChild(slot);
+      } else if (count === 2) {
+        const slot = document.createElement('div');
+        slot.className = 'goal-add-slot-card';
+        slot.innerHTML = `
+          <div class="add-slot-icon">+</div>
+          <div class="add-slot-text">
+            <div class="add-slot-title">Поставить третью цель (3 из 3)</div>
+            <div class="add-slot-sub">Финальная цель для идеального трио и баланса спринта</div>
+          </div>
+        `;
+        slot.addEventListener('click', () => this.openGoalModal());
+        list.appendChild(slot);
+      } else if (count === 3) {
+        const comp = document.createElement('div');
+        comp.className = 'goal-focus-complete-card';
+        comp.innerHTML = `
+          <div style="font-size:1.5rem; line-height:1;">✨</div>
+          <div>
+            <div class="focus-complete-title">Золотой стандарт фокуса: 3 из 3 целей!</div>
+            <div class="focus-complete-sub">Ваш спринт укомплектован. Направьте 100% энергии на регулярные действия дня.</div>
+          </div>
+        `;
+        list.appendChild(comp);
+      }
     }
 
     renderToday() {
