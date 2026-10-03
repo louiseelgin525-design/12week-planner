@@ -730,11 +730,14 @@ body {
   background: transparent;
   border: none;
   position: relative;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: background-color 0.15s ease, outline-color 0.15s ease;
   padding: 0;
 }
+.daisy-cell:hover {
+  background: rgba(141, 151, 123, 0.18);
+}
 .daisy-cell:active {
-  transform: scale(0.85);
+  opacity: 0.7;
 }
 
 /* State: Upcoming / Inactive */
@@ -752,22 +755,21 @@ body {
 /* State: Completed (Blooming Flower!) */
 .daisy-cell.completed .daisy-svg {
   opacity: 1;
-  filter: drop-shadow(0 2px 4px rgba(245, 192, 56, 0.3));
+  filter: drop-shadow(0 1px 3px rgba(245, 192, 56, 0.35));
 }
 
 /* State: Current Day Highlight */
 .daisy-cell.current {
   outline: 2px solid var(--olive-primary);
-  outline-offset: 1px;
+  outline-offset: 1.5px;
   background: rgba(92, 102, 71, 0.08);
 }
 
-/* State: Selected Day Highlight (on tap or hover) */
+/* State: Selected Day Highlight */
 .daisy-cell.selected {
-  outline: 2px solid #E5A93C;
+  outline: 2px solid #C2831F;
   outline-offset: 1.5px;
-  background: rgba(229, 169, 60, 0.16);
-  transform: scale(1.12);
+  background: rgba(194, 131, 31, 0.14);
 }
 
 /* Daisy Inspector Card (Mobile & Desktop) */
@@ -781,7 +783,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  animation: fadeIn 0.2s ease;
+  min-height: 96px;
+  box-sizing: border-box;
 }
 
 .daisy-insp-head {

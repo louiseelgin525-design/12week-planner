@@ -909,14 +909,6 @@
             }
           });
 
-          cell.addEventListener('mouseenter', () => {
-            this.renderDaisyInspector(idx);
-          });
-
-          cell.addEventListener('mouseleave', () => {
-            this.renderDaisyInspector(this.inspectedDaisyOffset);
-          });
-
           grid.appendChild(cell);
         }
       }
