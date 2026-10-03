@@ -476,7 +476,8 @@
       document.getElementById('btn-clear-all').addEventListener('click', () => this.clearAllData());
 
       // Goals modal
-      document.getElementById('btn-add-goal').addEventListener('click', () => this.openGoalModal());
+      const btnAddGoal = document.getElementById('btn-add-goal');
+      if (btnAddGoal) btnAddGoal.addEventListener('click', () => this.openGoalModal());
       document.getElementById('btn-close-goal-modal').addEventListener('click', () => this.closeGoalModal());
       document.getElementById('btn-cancel-goal').addEventListener('click', () => this.closeGoalModal());
       document.getElementById('btn-save-goal').addEventListener('click', () => this.saveGoalFromModal());
@@ -1076,10 +1077,7 @@
       const list = document.getElementById('goals-list');
       list.innerHTML = '';
 
-      const addGoalBtn = document.getElementById('btn-add-goal');
-
       if (this.state.goals.length === 0) {
-        if (addGoalBtn) addGoalBtn.style.display = 'none'; // Hide duplicate header button when empty!
         list.innerHTML = `
           <div class="card" style="text-align:center; padding:36px 20px;">
             <div style="font-size:2.4rem; margin-bottom:10px;">🎯</div>
@@ -1091,24 +1089,6 @@
           </div>
         `;
         return;
-      }
-
-      // Configure top-right button when goals exist
-      if (addGoalBtn) {
-        addGoalBtn.style.display = 'inline-flex';
-        if (this.state.goals.length < 3) {
-          addGoalBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            Новая цель
-          `;
-        } else if (this.state.goals.length < 5) {
-          addGoalBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            Ещё цель
-          `;
-        } else {
-          addGoalBtn.innerHTML = `5 из 5 (макс)`;
-        }
       }
 
       if (this.state.goals.length >= 4) {
