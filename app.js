@@ -1077,7 +1077,10 @@
       const list = document.getElementById('goals-list');
       list.innerHTML = '';
 
+      const addGoalBtn = document.getElementById('btn-add-goal');
+
       if (this.state.goals.length === 0) {
+        if (addGoalBtn) addGoalBtn.style.display = 'none';
         list.innerHTML = `
           <div class="card" style="text-align:center; padding:36px 20px;">
             <div style="font-size:2.4rem; margin-bottom:10px;">🎯</div>
@@ -1089,6 +1092,10 @@
           </div>
         `;
         return;
+      }
+
+      if (addGoalBtn) {
+        addGoalBtn.style.display = 'inline-flex';
       }
 
       if (this.state.goals.length >= 4) {
@@ -1299,11 +1306,36 @@
         comp.innerHTML = `
           <div style="font-size:1.5rem; line-height:1;">✨</div>
           <div>
-            <div class="focus-complete-title">Золотой стандарт фокуса: 3 из 3 целей!</div>
-            <div class="focus-complete-sub">Ваш спринт укомплектован. Направьте 100% энергии на регулярные действия дня.</div>
+            <div class="focus-complete-title">Золотой стандарт фокуса: 3 цели укомплектованы!</div>
+            <div class="focus-complete-sub">В методике 12 недель 1–3 цели дают лучший результат. Но если вам нужны ещё цели — добавляйте ниже:</div>
           </div>
         `;
         list.appendChild(comp);
+
+        const slot = document.createElement('div');
+        slot.className = 'goal-add-slot-card';
+        slot.innerHTML = `
+          <div class="add-slot-icon">+</div>
+          <div class="add-slot-text">
+            <div class="add-slot-title">Поставить 4-ю цель</div>
+            <div class="add-slot-sub">Дополнительная цель в ваш 12-недельный спринт</div>
+          </div>
+        `;
+        slot.addEventListener('click', () => this.openGoalModal());
+        list.appendChild(slot);
+      } else if (count >= 4) {
+        const nextNum = count + 1;
+        const slot = document.createElement('div');
+        slot.className = 'goal-add-slot-card';
+        slot.innerHTML = `
+          <div class="add-slot-icon">+</div>
+          <div class="add-slot-text">
+            <div class="add-slot-title">Поставить ${nextNum}-ю цель</div>
+            <div class="add-slot-sub">Дополнительная цель в ваш 12-недельный спринт</div>
+          </div>
+        `;
+        slot.addEventListener('click', () => this.openGoalModal());
+        list.appendChild(slot);
       }
     }
 
@@ -2006,15 +2038,7 @@
           goal.measurements[this.state.currentWeekNumber - 1] = currentVal;
         }
       } else {
-        // Add new
-        if (this.state.goals.length >= 5) {
-          alert('Достигнут технический максимум: 5 целей.\n\nВ методике «12-недельный год» фокус удерживается на 1–3 ключевых целях. Чтобы добавить новую, удалите или завершите одну из существующих.');
-          return;
-        }
-        if (this.state.goals.length >= 3) {
-          const proceed = confirm('💡 Рекомендация по методике 12-недельного года:\n\nЛучшие результаты обычно получаются при 1–3 ключевых целях.\nЧетвёртая цель может размыть ваш ежедневный фокус действий.\n\nВы уверены, что хотите добавить ещё одну цель?');
-          if (!proceed) return;
-        }
+        // Add new goal
         const newGoal = {
           id: 'g-' + Date.now(),
           title,
