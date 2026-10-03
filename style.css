@@ -1585,6 +1585,21 @@ body {
   letter-spacing: 0.02em;
 }
 
+.today-sub-tag.start-tag {
+  background: #FFF7D6;
+  color: #8C660B;
+  border: 1px solid #F3DF9F;
+}
+
+.day-v-card.is-start-day {
+  border-left: 4px solid #C2831F;
+  background: #FFFDF8;
+}
+
+.day-v-name.tag-start {
+  color: #8C660B;
+}
+
 .today-return-row {
   display: flex;
   justify-content: center;

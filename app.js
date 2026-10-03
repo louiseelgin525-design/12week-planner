@@ -221,8 +221,10 @@
       }
     }
 
-    syncCurrentDayFromDate() {
-      if (!this.state.settings || !this.state.settings.startDate) return;
+    getSprintTimeStatus() {
+      if (!this.state.settings || !this.state.settings.startDate) {
+        return { status: 'active', diffDays: 0, daysToStart: 0, daysAfterEnd: 0 };
+      }
       try {
         const parts = this.state.settings.startDate.split('-').map(Number);
         const start = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
@@ -230,12 +232,54 @@
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
         const diffMs = today.getTime() - start.getTime();
         const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-        if (diffDays >= 0 && diffDays < 84) {
-          this.state.currentDayOffset = diffDays;
-          this.state.currentWeekNumber = Math.floor(diffDays / 7) + 1;
+
+        if (diffDays < 0) {
+          return {
+            status: 'before',
+            diffDays,
+            daysToStart: Math.abs(diffDays),
+            startDate: start
+          };
+        } else if (diffDays >= 84) {
+          return {
+            status: 'completed',
+            diffDays,
+            daysAfterEnd: diffDays - 83,
+            startDate: start
+          };
+        } else {
+          return {
+            status: 'active',
+            diffDays,
+            daysToStart: 0,
+            daysAfterEnd: 0,
+            startDate: start
+          };
         }
       } catch (e) {
-        console.warn('Error syncing date:', e);
+        return { status: 'active', diffDays: 0, daysToStart: 0, daysAfterEnd: 0 };
+      }
+    }
+
+    isRealToday(offset) {
+      const curDate = this.getDateForDayOffset(offset);
+      const now = new Date();
+      return curDate.getFullYear() === now.getFullYear() &&
+             curDate.getMonth() === now.getMonth() &&
+             curDate.getDate() === now.getDate();
+    }
+
+    syncCurrentDayFromDate() {
+      const s = this.getSprintTimeStatus();
+      if (s.status === 'active') {
+        this.state.currentDayOffset = s.diffDays;
+        this.state.currentWeekNumber = Math.floor(s.diffDays / 7) + 1;
+      } else if (s.status === 'before') {
+        this.state.currentDayOffset = 0; // Focus on Day 1 for planning
+        this.state.currentWeekNumber = 1;
+      } else {
+        this.state.currentDayOffset = 83; // Final sprint day
+        this.state.currentWeekNumber = 12;
       }
     }
 
@@ -607,7 +651,18 @@
 
     renderHeader() {
       const badge = document.getElementById('header-sprint-badge');
-      badge.textContent = `НЕДЕЛЯ ${this.state.currentWeekNumber} ИЗ 12 • ДЕНЬ ${this.state.currentDayOffset + 1}`;
+      if (!badge) return;
+      const sprintStatus = this.getSprintTimeStatus();
+      if (sprintStatus.status === 'before') {
+        const days = sprintStatus.daysToStart;
+        const startD = this.getDateForDayOffset(0);
+        const monthsShort = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+        badge.textContent = `ПОДГОТОВКА • СТАРТ ${startD.getDate()} ${monthsShort[startD.getMonth()]} (ЧЕРЕЗ ${days} ${this.declension(days, ['ДЕНЬ', 'ДНЯ', 'ДНЕЙ'])})`;
+      } else if (sprintStatus.status === 'completed') {
+        badge.textContent = `12 НЕДЕЛЬ ЗАВЕРШЕНЫ • ФИНАЛ`;
+      } else {
+        badge.textContent = `НЕДЕЛЯ ${this.state.currentWeekNumber} ИЗ 12 • ДЕНЬ ${this.state.currentDayOffset + 1}`;
+      }
     }
 
     scrollRibbon(delta) {
@@ -684,7 +739,11 @@
       };
       document.getElementById('dash-mode-tag').innerHTML = `<span class="pulse-dot"></span> ${modeNames[this.state.settings.mode] || '🌿 Лёгкий (40м)'}`;
 
-      const daysLeft = Math.max(0, 84 - (this.state.currentDayOffset + 1));
+      const sprintStatus = this.getSprintTimeStatus();
+      const isBefore = (sprintStatus.status === 'before');
+      const startD = this.getDateForDayOffset(0);
+
+      const daysLeft = isBefore ? 84 : Math.max(0, 84 - (this.state.currentDayOffset + 1));
       document.getElementById('dash-days-left').textContent = daysLeft;
 
       // Completed daisy count
@@ -692,10 +751,15 @@
       const pacePercent = Math.round((doneDaisies / (this.state.currentDayOffset + 1 || 1)) * 100);
       document.getElementById('dash-pace').textContent = `${Math.min(100, pacePercent)}%`;
 
-      const sprintProgress = Math.round(((this.state.currentDayOffset + 1) / 84) * 100);
+      const sprintProgress = isBefore ? 0 : Math.round(((this.state.currentDayOffset + 1) / 84) * 100);
       document.getElementById('dash-sprint-progress').style.width = `${sprintProgress}%`;
-      document.getElementById('dash-progress-label').textContent = `День ${this.state.currentDayOffset + 1} из 84 (${sprintProgress}% спринта)`;
-      document.getElementById('dash-week-label').textContent = `Неделя ${this.state.currentWeekNumber}`;
+      if (isBefore) {
+        document.getElementById('dash-progress-label').textContent = `Старт через ${sprintStatus.daysToStart} ${this.declension(sprintStatus.daysToStart, ['день', 'дня', 'дней'])} (0% спринта)`;
+        document.getElementById('dash-week-label').textContent = `Подготовка`;
+      } else {
+        document.getElementById('dash-progress-label').textContent = `День ${this.state.currentDayOffset + 1} из 84 (${sprintProgress}% спринта)`;
+        document.getElementById('dash-week-label').textContent = `Неделя ${this.state.currentWeekNumber}`;
+      }
 
       // 2. Today Primary Focus ("Что мне делать сегодня?")
       const todayFocusWrap = document.getElementById('dash-today-focus-card');
@@ -710,10 +774,14 @@
             <div class="today-focus-empty">
               <div style="font-size:2rem; margin-bottom:6px;">⚡</div>
               <div class="today-focus-empty-text">
-                На сегодня пока нет запланированных действий.<br>
-                Запланируйте 1–3 ключевых дела, чтобы день стал победой!
+                ${isBefore 
+                  ? `Спринт стартует через ${sprintStatus.daysToStart} ${this.declension(sprintStatus.daysToStart, ['день', 'дня', 'дней'])} (${startD.getDate()} ${months[startD.getMonth()]}).<br>Запланируйте ключевые дела на первый день заранее!`
+                  : `На сегодня пока нет запланированных действий.<br>Запланируйте 1–3 ключевых дела, чтобы день стал победой!`
+                }
               </div>
-              <button class="btn-primary" onclick="app.openTaskModal()">+ Запланировать главное на сегодня</button>
+              <button class="btn-primary" onclick="app.openTaskModal()">
+                ${isBefore ? '+ Запланировать действия на День 1' : '+ Запланировать главное на сегодня'}
+              </button>
             </div>
           `;
         } else {
@@ -733,7 +801,7 @@
                     <span class="task-check-icon">✓</span>
                   </button>
                   <div class="task-details">
-                    ${isMain ? '<span class="task-main-badge">⭐ ГЛАВНОЕ СЕГОДНЯ</span>' : ''}
+                    ${isMain ? `<span class="task-main-badge">${isBefore ? '⭐ ГЛАВНОЕ ДНЯ 1' : '⭐ ГЛАВНОЕ СЕГОДНЯ'}</span>` : ''}
                     <span class="task-title" style="${isMain ? 'font-weight:800; font-size:0.92rem;' : ''}">${this.escapeHtml(t.title)}</span>
                     <div class="task-meta">
                       <span class="task-mins-pill">⏱️ ${t.mins} мин</span>
@@ -875,7 +943,7 @@
           cell.className = 'daisy-cell';
           cell.dataset.offset = idx;
 
-          const isCurrent = (idx === this.state.currentDayOffset);
+          const isCurrent = this.isRealToday(idx);
           const isSelected = (idx === this.inspectedDaisyOffset);
 
           if (isCurrent) cell.classList.add('current');
@@ -884,7 +952,7 @@
           if (daisy.completed) {
             cell.classList.add('completed');
             cell.innerHTML = this.getDaisySvg(true);
-          } else if (idx < this.state.currentDayOffset) {
+          } else if (idx < this.state.currentDayOffset && !isBefore) {
             // Missed past day
             cell.innerHTML = this.getDaisySvg(false);
           } else {
@@ -994,7 +1062,9 @@
       const taskCount = (dayData && Array.isArray(dayData.tasks)) ? dayData.tasks.length : 0;
       const doneTaskCount = (dayData && Array.isArray(dayData.tasks)) ? dayData.tasks.filter(t => t.done).length : 0;
       const totalMins = (dayData && Array.isArray(dayData.tasks)) ? dayData.tasks.reduce((sum, t) => sum + (parseInt(t.mins, 10) || 0), 0) : 0;
-      const isToday = (offset === this.state.currentDayOffset);
+      const isToday = this.isRealToday(offset);
+      const sprintStatus = this.getSprintTimeStatus();
+      const isSprintStartDay = (offset === 0 && sprintStatus.status === 'before');
 
       let taskInfo = '';
       if (taskCount > 0) {
@@ -1008,9 +1078,12 @@
       if (d.completed) {
         statusBadge = '<span class="daisy-insp-status-badge blooming">Цветёт 🌸</span>';
         statusIcon = '🌼';
-      } else if (offset < this.state.currentDayOffset) {
+      } else if (offset < this.state.currentDayOffset && sprintStatus.status !== 'before') {
         statusBadge = '<span class="daisy-insp-status-badge missed">Не закрыт</span>';
         statusIcon = '🌱';
+      } else if (isSprintStartDay) {
+        statusBadge = `<span class="daisy-insp-status-badge upcoming" style="background:#FFF7D6; color:#8C660B; border:1px solid #F3DF9F;">Старт через ${sprintStatus.daysToStart} дн</span>`;
+        statusIcon = '🚀';
       } else {
         statusBadge = '<span class="daisy-insp-status-badge upcoming">Впереди</span>';
         statusIcon = '🌱';
@@ -1022,7 +1095,7 @@
             <span class="daisy-insp-icon">${statusIcon}</span>
             <div>
               <div class="daisy-insp-title">
-                ${isToday ? '⭐ Сегодня • ' : ''}День ${dayNum} (${dayDateStr})
+                ${isToday ? '⭐ Сегодня • ' : (isSprintStartDay ? '🚀 Старт спринта • ' : '')}День ${dayNum} (${dayDateStr})
               </div>
               <div class="daisy-insp-sub">Неделя ${weekNum} ${taskInfo}</div>
             </div>
@@ -1342,19 +1415,34 @@
       const monthsRu = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
       const monthsShort = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
       
+      const isRealToday = this.isRealToday(offset);
+      const sprintStatus = this.getSprintTimeStatus();
+      const isSprintStartDay = (offset === 0 && sprintStatus.status === 'before');
+
       document.getElementById('today-display-date').textContent = `${daysRu[dayDate.getDay()]}, ${dayDate.getDate()} ${monthsRu[dayDate.getMonth()]}`;
-      document.getElementById('today-display-sprint').textContent = `НЕДЕЛЯ ${weekNum} • ДЕНЬ ${dayNum}`;
+      
+      let sprintBadgeText = `НЕДЕЛЯ ${weekNum} • ДЕНЬ ${dayNum}`;
+      if (isRealToday) {
+        sprintBadgeText += ' (СЕГОДНЯ)';
+      } else if (isSprintStartDay) {
+        sprintBadgeText = `ДЕНЬ 1 • СТАРТ ЧЕРЕЗ ${sprintStatus.daysToStart} ${this.declension(sprintStatus.daysToStart, ['ДЕНЬ', 'ДНЯ', 'ДНЕЙ'])}`;
+      }
+      document.getElementById('today-display-sprint').textContent = sprintBadgeText;
 
       // Quick Return button if inspecting a day other than today
       const returnRow = document.getElementById('today-return-row');
       if (returnRow) {
         if (offset !== this.state.currentDayOffset) {
           returnRow.style.display = 'flex';
-          const todayDate = this.getDateForDayOffset(this.state.currentDayOffset);
+          const targetDate = this.getDateForDayOffset(this.state.currentDayOffset);
           const shortDaysRu = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
           const btn = document.getElementById('btn-return-today');
           if (btn) {
-            btn.innerHTML = `&larr; Вернуться к Сегодня (${shortDaysRu[todayDate.getDay()]}, ${todayDate.getDate()} ${monthsShort[todayDate.getMonth()]} • День ${this.state.currentDayOffset + 1})`;
+            if (sprintStatus.status === 'before') {
+              btn.innerHTML = `&larr; К Дню 1 (Старт ${targetDate.getDate()} ${monthsShort[targetDate.getMonth()]})`;
+            } else {
+              btn.innerHTML = `&larr; Вернуться к Сегодня (${shortDaysRu[targetDate.getDay()]}, ${targetDate.getDate()} ${monthsShort[targetDate.getMonth()]} • День ${this.state.currentDayOffset + 1})`;
+            }
           }
         } else {
           returnRow.style.display = 'none';
@@ -1503,9 +1591,12 @@
         const curDate = this.getDateForDayOffset(dayOffset);
 
         const card = document.createElement('div');
-        const isCurrentDay = (dayOffset === this.state.currentDayOffset);
+        const isRealToday = this.isRealToday(dayOffset);
+        const sprintStatus = this.getSprintTimeStatus();
+        const isSprintStart = (dayOffset === 0 && sprintStatus.status === 'before');
         const isSelectedDay = (dayOffset === this.selectedDayOffset);
-        card.className = `day-v-card ${isCurrentDay ? 'is-today' : ''} ${isSelectedDay ? 'is-selected' : ''}`;
+
+        card.className = `day-v-card ${isRealToday ? 'is-today' : ''} ${isSprintStart ? 'is-start-day' : ''} ${isSelectedDay ? 'is-selected' : ''}`;
 
         const dayData = this.getDayData(dayOffset);
         const count = dayData.tasks.length;
@@ -1532,13 +1623,20 @@
           }
         }
 
+        let subTagHtml = '';
+        if (isRealToday) {
+          subTagHtml = '<span class="today-sub-tag">Сегодня</span>';
+        } else if (isSprintStart) {
+          subTagHtml = '<span class="today-sub-tag start-tag">Старт спринта</span>';
+        }
+
         card.innerHTML = `
           <div class="day-v-left">
-            <span class="day-v-name ${isCurrentDay ? 'tag-today' : ''}">${dayNames[i]}</span>
+            <span class="day-v-name ${isRealToday ? 'tag-today' : (isSprintStart ? 'tag-start' : '')}">${dayNames[i]}</span>
             <div>
               <span class="day-v-date">
                 ${curDate.getDate()} ${months[curDate.getMonth()]}
-                ${isCurrentDay ? '<span class="today-sub-tag">Сегодня</span>' : ''}
+                ${subTagHtml}
               </span>
               <div class="day-v-tasks-summary">${summaryText}</div>
             </div>
