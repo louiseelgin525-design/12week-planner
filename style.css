@@ -2286,7 +2286,7 @@ body {
   border: 1px solid var(--sage-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .today-focus-head-row {

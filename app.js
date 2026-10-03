@@ -676,8 +676,12 @@
       const dateStr = `${start.getDate()} ${months[start.getMonth()]} — ${end.getDate()} ${months[end.getMonth()]}`;
       document.getElementById('dash-sprint-dates').textContent = dateStr;
 
-      const modeNames = { easy: 'Лёгкий режим', optimal: 'Оптимальный', hard: 'Интенсивный' };
-      document.getElementById('dash-mode-tag').innerHTML = `<span class="pulse-dot"></span> ${modeNames[this.state.settings.mode] || 'Лёгкий режим'}`;
+      const modeNames = {
+        easy: '🌿 Лёгкий (40м)',
+        optimal: '⚡ Оптимальный (60м)',
+        hard: '🔥 Интенсивный (84м)'
+      };
+      document.getElementById('dash-mode-tag').innerHTML = `<span class="pulse-dot"></span> ${modeNames[this.state.settings.mode] || '🌿 Лёгкий (40м)'}`;
 
       const daysLeft = Math.max(0, 84 - (this.state.currentDayOffset + 1));
       document.getElementById('dash-days-left').textContent = daysLeft;
@@ -766,10 +770,10 @@
         }
       }
 
-      // 3. Top Goals (with Lead-Lag action connection)
+      // 3. Top Goals (Strictly 3 Goals Preview)
       const goalsWrap = document.getElementById('dash-top-goals');
       goalsWrap.innerHTML = '';
-      this.state.goals.slice(0, 4).forEach(goal => {
+      this.state.goals.slice(0, 3).forEach(goal => {
         const item = document.createElement('div');
         item.className = 'dash-goal-card';
         
@@ -1292,12 +1296,12 @@
       // Time Budget Calculations
       const tb = this.calculateTimeBudget(offset);
       const modeTitles = {
-        easy: 'Режим «Лёгкий»',
-        optimal: 'Режим «Оптимальный»',
-        hard: 'Режим «Интенсивный»'
+        easy: '🌿 Режим «Лёгкий» (40 мин/день)',
+        optimal: '⚡ Режим «Оптимальный» (60 мин/день)',
+        hard: '🔥 Режим «Интенсивный» (84 мин/день)'
       };
 
-      document.getElementById('budget-mode-title').textContent = modeTitles[tb.mode] || 'Режим «Лёгкий»';
+      document.getElementById('budget-mode-title').textContent = modeTitles[tb.mode] || '🌿 Режим «Лёгкий»';
       document.getElementById('b-val-budget').textContent = `${tb.limit} мин`;
       document.getElementById('b-val-planned').textContent = `${tb.planned} мин`;
       

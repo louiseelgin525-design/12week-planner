@@ -18,7 +18,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   
-  <link rel="stylesheet" href="style.css?v=3.2">
+  <link rel="stylesheet" href="style.css?v=3.3">
 </head>
 <body>
   <!-- Canvas for celebration confetti -->
@@ -98,7 +98,7 @@
             </div>
             <div class="hero-stat-box">
               <span class="stat-value" id="dash-pace">84%</span>
-              <span class="stat-desc">общий темп</span>
+              <span class="stat-desc">темп выполнения</span>
             </div>
             <div class="hero-stat-box">
               <span class="stat-value" id="dash-streak">14 🔥</span>
@@ -136,7 +136,7 @@
         <div class="section-block">
           <div class="section-head">
             <div>
-              <h3 class="section-title">🎯 Прогресс целей</h3>
+              <h3 class="section-title">🎯 Цели спринта</h3>
               <p class="section-subtitle">Связка: Действия недели &rarr; Результат</p>
             </div>
             <button class="link-btn" onclick="app.switchTab('goals')">Все цели &rarr;</button>
@@ -729,25 +729,29 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Режим интенсивности</label>
+            <label class="form-label">Режим интенсивности спринта</label>
             <select id="set-mode" class="form-select">
-              <option value="easy">Лёгкий режим (коэфф. 0.5 — мягкий старт)</option>
-              <option value="optimal">Оптимальный режим (коэфф. 0.75 — баланс)</option>
-              <option value="hard">Интенсивный режим (коэфф. 1.0 — максимальный фокус)</option>
+              <option value="easy">🌿 Лёгкий — 40 мин/день (для спокойного старта)</option>
+              <option value="optimal">⚡ Оптимальный — 60 мин/день (баланс нагрузки и результата)</option>
+              <option value="hard">🔥 Интенсивный — 84 мин/день (для короткого мощного спринта)</option>
             </select>
           </div>
 
           <div class="form-row">
             <div class="form-group flex-1">
-              <label class="form-label">Свободно (мин)</label>
+              <label class="form-label">Свободное время (мин)</label>
               <input type="number" id="set-free-minutes" class="form-input" value="120">
             </div>
             <div class="form-group flex-1">
-              <label class="form-label">Буфер (%)</label>
+              <label class="form-label">Буфер форс-мажора (%)</label>
               <input type="number" id="set-reserve-percent" class="form-input" value="30">
             </div>
           </div>
-          <p class="settings-hint">При 120 мин свободных, 30% буфера и режиме «Лёгкий» чистый лимит дня равен <b>40 минут</b>.</p>
+          <p class="settings-hint">
+            🌿 <b>Лёгкий:</b> 40 мин/день • для спокойного старта<br>
+            ⚡ <b>Оптимальный:</b> 60 мин/день • баланс нагрузки и результата<br>
+            🔥 <b>Интенсивный:</b> 84 мин/день • для короткого мощного спринта
+          </p>
         </div>
 
         <!-- Data Management & Backups -->
@@ -788,6 +792,6 @@
   </div>
 
   <!-- Scripts -->
-  <script src="app.js?v=3.2"></script>
+  <script src="app.js?v=3.3"></script>
 </body>
 </html>
